@@ -16,14 +16,11 @@ summarise_tweets(tweets: list[str]) -> 'Summarisation': str by llm();
 can search_tweets(query: str, tweets: list, tweet_embeddings: any, similarity_threshold: float=0.25) -> list {
     query_embedding = model.encode([query]);
     similarities = cosine_similarity(query_embedding, tweet_embeddings)[0];
-    results = [{**tweets[i], "similarity": similarities[i]} for i in range(len(similarities)) if similarities[i] >= similarity_threshold]
-    ;
+    results = [{**tweets[i], "similarity": similarities[i]} for i in range(len(similarities)) if similarities[i] >= similarity_threshold];
     return results;
-}
 
 node profile {
     has username: str = "";
-    has count_tag: dict = {};
     has followees: list = [];
 
     can update with update_profile entry{
@@ -33,7 +30,7 @@ node profile {
     }
 
     can get with get_profile entry{
-        logger.info(f"profile info: {self}");
+        logger.info(f"Profile info: {self}");
         report self;
     }
 
@@ -46,7 +43,7 @@ node profile {
 
     can un_follow with un_follow_request entry{
         self.followees.append(here.profile_id);
-        logger.info(f"New followee addded: {here.profile_id}");
+        logger.info(f"Followee removed: {here.profile_id}");
         self del-:follow:-> &here.profile_id;
         report self;
     }
@@ -54,14 +51,14 @@ node profile {
     can like_tweet with like_tweet entry{
         tweet_node = &here.tweet_id;
         tweet_node +:like():+> self;
-        logger.info(f"liked to a tweet: {tweet_node}");
+        logger.info(f"Liked a tweet: {tweet_node}");
         report tweet_node;
     }
 
     can remove_like with remove_like entry {
         tweet_node = &here.tweet_id;
         tweet_node del-:like:-> self;
-        logger.info(f"Reomve liked to a tweet: {tweet_node}");
+        logger.info(f"Removed like from tweet: {tweet_node}");
         report tweet_node;
     }
 }
@@ -102,8 +99,8 @@ edge like {}
 
 edge post {}
 
-walker visit_profile {
-    can visit_profile with `root entry {
+walker user_init {
+    can user_init with `root entry {
         visit [-->(`?profile)] else {
             logger.info("Creating new profile");
             new_profile = here ++> profile();
@@ -113,11 +110,11 @@ walker visit_profile {
     }
 }
 
-walker update_profile { #spawn profile
+walker update_profile {
     has new_username: str;
 }
 
-walker get_profile{} #spawn profile
+walker get_profile{}
 
 walker load_user_profiles {
     obj __specs__ {
@@ -136,15 +133,15 @@ walker load_user_profiles {
     }
 }
 
-walker follow_request  { #spawn profile
+walker follow_request  {
     has profile_id: str;
 }
 
-walker un_follow_request { #spawn profile
+walker un_follow_request {
     has profile_id: str;
 }
 
-walker create_tweet { #spawn at profile
+walker create_tweet {
     has content: str;
 
     can tweet with profile entry {
@@ -155,21 +152,21 @@ walker create_tweet { #spawn at profile
     }
 }
 
-walker update_tweet { #spawn at tweet
+walker update_tweet {
     has updated_content: str;
 }
 
-walker remove_tweet { } #spawn at tweet
+walker remove_tweet { }
 
-walker like_tweet { #spawn profile
+walker like_tweet {
     has tweet_id: str;
 }
 
-walker remove_like { #spawn profile
+walker remove_like {
     has tweet_id: str;
 }
 
-walker comment_tweet { #spawn at profile
+walker comment_tweet {
     has tweet_id: str;
     has content: str;
 
@@ -182,7 +179,7 @@ walker comment_tweet { #spawn at profile
     }
 }
 
-walker load_tweets{ #spawn at profile
+walker load_tweets{
     has if_report: bool = False;
     has tweets: list = [];
 
@@ -198,7 +195,7 @@ walker load_tweets{ #spawn at profile
     }
 }
 
-walker load_feed  { #spawn at profile
+walker load_feed  {
     has search_query: str = "";
 
     can load with profile entry {
