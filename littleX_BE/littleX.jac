@@ -22,7 +22,6 @@ can search_tweets(query: str, tweets: list, tweet_embeddings: any, similarity_th
 
 node profile {
     has username: str = "";
-    has followees: list = [];
 
     can update with update_profile entry{
         logger.info("Updating profile");
@@ -36,14 +35,12 @@ node profile {
     }
 
     can follow with follow_request entry{
-        self.followees.append(here.profile_id);
         logger.info(f"New followee addded: {here.profile_id}");
         self +:follow():+> &here.profile_id;
         report self;
     }
 
     can un_follow with un_follow_request entry{
-        self.followees.append(here.profile_id);
         logger.info(f"Followee removed: {here.profile_id}");
         self del-:follow:-> &here.profile_id;
         report self;
