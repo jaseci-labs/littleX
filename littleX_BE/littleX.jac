@@ -18,6 +18,7 @@ can search_tweets(query: str, tweets: list, tweet_embeddings: any, similarity_th
     similarities = cosine_similarity(query_embedding, tweet_embeddings)[0];
     results = [{**tweets[i], "similarity": similarities[i]} for i in range(len(similarities)) if similarities[i] >= similarity_threshold];
     return results;
+}
 
 node profile {
     has username: str = "";
@@ -202,9 +203,8 @@ walker load_feed  {
         self.feeds: list = [];
         user_tweets = here spawn load_tweets();
         self.feeds.extend(user_tweets.tweets);
-        
-        for user in here.followees {
-            user_node = &user;
+
+        for user_node in [-:follow:->](`?profile) {
             user_tweets = user_node spawn load_tweets();
             self.feeds.extend(user_tweets.tweets);
         }
