@@ -10,43 +10,41 @@ glob logger = logging.getLogger("littleX");
 glob llm = Ollama(host="http://127.0.0.1:11434", model_name="llama3.2:1b");
 glob model = SentenceTransformer('all-MiniLM-L6-v2');
 
-can 'Extract and summarize trending themes, major highlights, and key interactions from recent tweets in one concise sentence.'
-summarise_tweets(tweets: list[str]) -> 'Summarisation': str by llm();
-
 can search_tweets(query: str, tweets: list, tweet_embeddings: any, similarity_threshold: float=0.25) -> list {
     query_embedding = model.encode([query]);
     similarities = cosine_similarity(query_embedding, tweet_embeddings)[0];
-    results = [{**tweets[i], "similarity": similarities[i]} for i in range(len(similarities)) if similarities[i] >= similarity_threshold];
+    results = [{**tweets[i], "similarity": similarities[i]} for i in range(len(similarities)) if similarities[i] >= similarity_threshold]
+    ;
     return results;
 }
 
 node profile {
     has username: str = "";
 
-    can update with update_profile entry{
+    can update with update_profile entry {
         logger.info("Updating profile");
         self.username = here.new_username;
         report self;
     }
 
-    can get with get_profile entry{
+    can get with get_profile entry {
         logger.info(f"Profile info: {self}");
         report self;
     }
 
-    can follow with follow_request entry{
+    can follow with follow_request entry {
         logger.info(f"New followee addded: {here.profile_id}");
         self +:follow():+> &here.profile_id;
         report self;
     }
 
-    can un_follow with un_follow_request entry{
+    can un_follow with un_follow_request entry {
         logger.info(f"Followee removed: {here.profile_id}");
         self del-:follow:-> &here.profile_id;
         report self;
     }
 
-    can like_tweet with like_tweet entry{
+    can like_tweet with like_tweet entry {
         tweet_node = &here.tweet_id;
         tweet_node +:like():+> self;
         logger.info(f"Liked a tweet: {tweet_node}");
@@ -66,24 +64,24 @@ node tweet {
     has created_at: str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S");
     has tweet_info: dict = {};
 
-    can update with update_tweet exit{
+    can update with update_tweet exit {
         self.content = here.updated_content;
         logger.info(f"Tweet updated: {self}");
         report self;
     }
 
-    can delete with remove_tweet exit{
+    can delete with remove_tweet exit {
         logger.info(f"Tweet deleted: {self}");
         del self;
     }
 
-    can load with load_tweets entry{
-        logger.info(f"Tweet loaded: {here}");  
+    can load with load_tweets entry {
+        logger.info(f"Tweet loaded: {here}");
         self.tweet_info = {
-            "content":self.content,
-            "likes": [i.username for i in [self -:like:->]], 
-            "comments":[i.content for i in [self -->(`?comment)]]
-            }; 
+            "content": self.content,
+            "likes": [i.username for i in [self-:like:->]],
+            "comments": [i.content for i in [self-->(`?comment)]]
+        };
     }
 }
 
@@ -108,11 +106,11 @@ walker user_init {
     }
 }
 
-walker update_profile {
+walker update_profile :user_init: {
     has new_username: str;
 }
 
-walker get_profile{}
+walker get_profile  :user_init: {}
 
 walker load_user_profiles {
     obj __specs__ {
@@ -131,15 +129,15 @@ walker load_user_profiles {
     }
 }
 
-walker follow_request  {
+walker follow_request :user_init: {
     has profile_id: str;
 }
 
-walker un_follow_request {
+walker un_follow_request :user_init: {
     has profile_id: str;
 }
 
-walker create_tweet {
+walker create_tweet :user_init: {
     has content: str;
 
     can tweet with profile entry {
@@ -154,17 +152,17 @@ walker update_tweet {
     has updated_content: str;
 }
 
-walker remove_tweet { }
+walker remove_tweet {}
 
-walker like_tweet {
+walker like_tweet :user_init: {
     has tweet_id: str;
 }
 
-walker remove_like {
+walker remove_like :user_init: {
     has tweet_id: str;
 }
 
-walker comment_tweet {
+walker comment_tweet :user_init: {
     has tweet_id: str;
     has content: str;
 
@@ -177,7 +175,7 @@ walker comment_tweet {
     }
 }
 
-walker load_tweets{
+walker load_tweets :user_init: {
     has if_report: bool = False;
     has tweets: list = [];
 
@@ -185,7 +183,7 @@ walker load_tweets{
         visit [-->](`?tweet);
     }
 
-    can add with tweet entry{
+    can add with tweet entry {
         self.tweets.append(here.tweet_info);
         if self.if_report {
             report self.tweets;
@@ -193,14 +191,14 @@ walker load_tweets{
     }
 }
 
-walker load_feed  {
+walker load_feed  :user_init: {
     has search_query: str = "";
 
     can load with profile entry {
         self.feeds: list = [];
         user_tweets = here spawn load_tweets();
         self.feeds.extend(user_tweets.tweets);
-
+        
         for user_node in [-:follow:->](`?profile) {
             user_tweets = user_node spawn load_tweets();
             self.feeds.extend(user_tweets.tweets);
