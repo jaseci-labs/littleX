@@ -3,12 +3,12 @@ import:py from jac_cloud.core.architype { NodeAnchor }
 import:py logging;
 import:py from mtllm.llms {Ollama}
 import:py numpy;
-import:py from sentence_transformers { SentenceTransformer }
+import:py from sentence_transformers;
 import:py from sklearn.metrics.pairwise { cosine_similarity }
 
 glob logger = logging.getLogger("littleX");
 glob llm = Ollama(host="http://127.0.0.1:11434", model_name="llama3.2:1b");
-glob model = SentenceTransformer('all-MiniLM-L6-v2');
+glob model = sentence_transformers('all-MiniLM-L6-v2');
 
 can search_tweets(query: str, tweets: list, tweet_embeddings: any, similarity_threshold: float=0.25) -> list {
     query_embedding = model.encode([query]);
@@ -46,7 +46,7 @@ node profile {
 
     can like_tweet with like_tweet entry {
         tweet_node = &here.tweet_id;
-        tweet_node +:like():+> self;
+        tweet_node <+:like():+> self;
         logger.info(f"Liked a tweet: {tweet_node}");
         report tweet_node;
     }
@@ -78,6 +78,7 @@ node tweet {
     can load with load_tweets entry {
         logger.info(f"Tweet loaded: {here}");
         self.tweet_info = {
+            "id": jid(self),
             "content": self.content,
             "likes": [i.username for i in [self-:like:->]],
             "comments": [i.content for i in [self-->(`?comment)]]
@@ -170,6 +171,7 @@ walker comment_tweet :user_init: {
         comment_node = here ++> comment(content=self.content);
         tweet_node = &self.tweet_id;
         tweet_node ++> comment_node[0];
+        Jac.unrestrict(comment_node[0], level="CONNECT");
         logger.info(f"comment added: {comment_node[0]}");
         report comment_node[0];
     }
