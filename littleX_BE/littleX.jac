@@ -3,12 +3,12 @@ import:py from jac_cloud.core.architype { NodeAnchor }
 import:py logging;
 import:py from mtllm.llms {Ollama}
 import:py numpy;
-import:py from sentence_transformers;
+import:py from sentence_transformers { SentenceTransformer }
 import:py from sklearn.metrics.pairwise { cosine_similarity }
 
 glob logger = logging.getLogger("littleX");
 glob llm = Ollama(host="http://127.0.0.1:11434", model_name="llama3.2:1b");
-glob model = sentence_transformers('all-MiniLM-L6-v2');
+glob model = SentenceTransformer('all-MiniLM-L6-v2');
 
 can search_tweets(query: str, tweets: list, tweet_embeddings: any, similarity_threshold: float=0.25) -> list {
     query_embedding = model.encode([query]);
@@ -17,6 +17,9 @@ can search_tweets(query: str, tweets: list, tweet_embeddings: any, similarity_th
     ;
     return results;
 }
+
+can 'Extract and summarize trending themes, major highlights, and key interactions from recent tweets in one concise sentence.'
+summarise_tweets(tweets: list[str]) -> 'Summarisation': str by llm();
 
 node profile {
     has username: str = "";
@@ -187,6 +190,9 @@ walker load_tweets :user_init: {
 
     can add with tweet entry {
         self.tweets.append(here.tweet_info);
+    }
+
+    can reporting with profile exit {
         if self.if_report {
             report self.tweets;
         }
