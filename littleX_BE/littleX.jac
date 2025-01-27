@@ -8,10 +8,10 @@ import:py from sklearn.metrics.pairwise { cosine_similarity }
 
 glob logger = logging.getLogger("littleX");
 glob llm = Ollama(host="http://127.0.0.1:11434", model_name="llama3.2:1b");
-glob sentence_transformer = SentenceTransformer('all-MiniLM-L6-v2');
+glob model = SentenceTransformer('all-MiniLM-L6-v2');
 
 can search_tweets(query: str, tweets: list, tweet_embeddings: any, similarity_threshold: float=0.25) -> list {
-    query_embedding = sentence_transformer.encode([query]);
+    query_embedding = model.encode([query]);
     similarities = cosine_similarity(query_embedding, tweet_embeddings)[0];
     results = [{**tweets[i], "similarity": similarities[i]} for i in range(len(similarities)) if similarities[i] >= similarity_threshold]
     ;
@@ -84,7 +84,7 @@ node tweet {
             "id": jid(self),
             "content": self.content,
             "likes": [i.username for i in [self-:like:->]],
-            "comments": [i.content for i in [self-->(`?comment)]]
+            "comments": [{"id": jid(i), "content": i.content} for i in [self-->(`?comment)]]
         };
     }
 }
@@ -216,7 +216,7 @@ walker load_feed  :user_init: {
 
         # Filter tweets based on search query
         if (self.search_query) {
-            tweet_embeddings = sentence_transformer.encode(tweets);
+            tweet_embeddings = model.encode(tweets);
             filtered_results = search_tweets(
                 self.search_query,
                 self.feeds,
