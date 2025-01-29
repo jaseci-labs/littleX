@@ -175,12 +175,12 @@ walker load_tweets :visit_profile: {
     can go_to_tweet with Profile entry {
         visit [-->(`?Tweet)];
         if (self.if_report) {
-            report tweet_info;
+            report self.tweet_info;
         }
     }
 
     can report_tweet with Tweet entry {
-        tweet_info.append(here.get_info());
+        self.tweet_info.append(here.get_info());
     }
 }
 
