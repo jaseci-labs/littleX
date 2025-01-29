@@ -85,14 +85,14 @@ node Tweet {
         report comment_node[0];
     }
 
-    can append_tweet with load_tweets entry {
-        here.tweet_info.append(TweetInfo(
+    can get_info() {
+        return TweetInfo(
             id=jid(self),
             content=self.content,
             embedding=self.embedding,
             likes=[i.username for i in [self-:Like:->]],
             comments=[{"id": jid(i), "content": i.content} for i in [self-->(`?Comment)]]
-        ));
+        );
     }
 }
 
@@ -170,12 +170,11 @@ walker comment_tweet {
 
 walker load_tweets :visit_profile: {
     has if_report: bool = False;
-    has tweet_info: list[TweetInfo] = [];
 
     can go_to_tweet with Profile entry {
-        visit [-->(`?Tweet)];
+        tweet_info =[tweet.get_info() for tweet in [-->(`?Tweet)]];
         if self.if_report {
-            report self.tweet_info;
+            report tweet_info;
         }
     }
 }
