@@ -170,12 +170,17 @@ walker comment_tweet {
 
 walker load_tweets :visit_profile: {
     has if_report: bool = False;
+    has tweet_info: list[TweetInfo] = [];
 
     can go_to_tweet with Profile entry {
-        tweet_info =[tweet.get_info() for tweet in [-->(`?Tweet)]];
-        if self.if_report {
+        visit [-->(`?Tweet)];
+        if (self.if_report) {
             report tweet_info;
         }
+    }
+
+    can report_tweet with Tweet entry {
+        tweet_info.append(here.get_info());
     }
 }
 
