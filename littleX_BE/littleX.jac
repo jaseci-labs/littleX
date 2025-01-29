@@ -41,16 +41,6 @@ node Profile {
         current_profile[0] del-:Follow:-> self;
         report self;
     }
-
-    can append_tweet with load_tweets entry {
-        here.tweet_info = [TweetInfo(
-            id=jid(tweet),
-            content=tweet.content,
-            embedding=tweet.embedding,
-            likes=[i.username for i in [tweet-:Like:->]],
-            comments=[{"id": jid(i), "content": i.content} for i in [tweet-->(`?Comment)]]
-        ) for tweet in [-->(`?Tweet)]];
-    }
 }
 
 obj TweetInfo {
@@ -93,6 +83,16 @@ node Tweet {
         Jac.unrestrict(comment_node[0], level="CONNECT");
         self ++> comment_node[0];
         report comment_node[0];
+    }
+
+    can append_tweet with load_tweets entry {
+        here.tweet_info.append(TweetInfo(
+            id=jid(self),
+            content=self.content,
+            embedding=self.embedding,
+            likes=[i.username for i in [self-:Like:->]],
+            comments=[{"id": jid(i), "content": i.content} for i in [self-->(`?Comment)]]
+        ));
     }
 }
 
@@ -170,8 +170,10 @@ walker comment_tweet {
 
 walker load_tweets :visit_profile: {
     has if_report: bool = False;
+    has tweet_info: list[TweetInfo] = [];
 
-    can go_to_tweet with Profile exit {
+    can go_to_tweet with Profile entry {
+        visit [-->(`?Tweet)];
         if self.if_report {
             report self.tweet_info;
         }
