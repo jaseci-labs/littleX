@@ -85,7 +85,7 @@ node Tweet {
         report comment_node[0];
     }
 
-    can get_info() {
+    can get_info()-> TweetInfo {
         return TweetInfo(
             id=jid(self),
             content=self.content,
