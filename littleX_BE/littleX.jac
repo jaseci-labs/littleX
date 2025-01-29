@@ -43,14 +43,13 @@ node Profile {
     }
 
     can append_tweet with load_tweets entry {
-        tweets = [TweetInfo(
+        here.tweet_info = [TweetInfo(
             id=jid(tweet),
             content=tweet.content,
             embedding=tweet.embedding,
             likes=[i.username for i in [tweet-:Like:->]],
             comments=[{"id": jid(i), "content": i.content} for i in [tweet-->(`?Comment)]]
         ) for tweet in [-->(`?Tweet)]];
-        here.tweet_info = tweets;
     }
 }
 
@@ -78,13 +77,13 @@ node Tweet {
 
     can like_tweet with like_tweet entry {
         current_profile = [root-->(`?Profile)];
-        self <+:Like():+> current_profile[0];
+        self +:Like():+> current_profile[0];
         report self;
     }
 
     can remove_like with remove_like entry {
         current_profile = [root-->(`?Profile)];
-        self del<-:Like:-> current_profile[0];
+        self del-:Like:-> current_profile[0];
         report self;
     }
 
