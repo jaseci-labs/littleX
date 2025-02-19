@@ -4,3 +4,4 @@ jac-cloud~=0.1.13
 ollama
 pillow
 sentence_transformers
+openai~=1.63.2
