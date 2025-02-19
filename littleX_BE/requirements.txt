@@ -1,6 +1,7 @@
-jaclang~=0.7.27
-mtllm~=0.3.3
-jac-cloud~=0.1.13
+jaclang
+mtllm
+jac-cloud
+openai
 ollama
 pillow
 sentence_transformers
