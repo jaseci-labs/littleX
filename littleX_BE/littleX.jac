@@ -18,6 +18,10 @@ node Profile {
     can follow with follow_request entry;
 
     can un_follow with un_follow_request entry;
+
+    def __jac_access__ {
+        return "CONNECT";
+    }
 }
 
 obj TweetInfo {
@@ -47,6 +51,10 @@ node Tweet {
     def get_info()-> TweetInfo;
 
     can get with load_feed entry;
+
+    def __jac_access__ {
+        return "CONNECT";
+    }
 }
 
 node Comment {
@@ -55,6 +63,10 @@ node Comment {
     can update with update_comment entry;
 
     can delete with remove_comment entry;
+
+    def __jac_access__ {
+        return "CONNECT";
+    }
 }
 
 edge Follow {}
