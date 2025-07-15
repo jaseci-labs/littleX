@@ -1,5 +1,6 @@
 import datetime;
 import from jac_cloud.core.archetype { NodeAnchor }
+import from jac_cloud.plugin {WEBSOCKET_MANAGER as socket}
 import numpy;
 import from sklearn.feature_extraction.text { TfidfVectorizer }
 import from sklearn.metrics.pairwise { cosine_similarity }
@@ -120,4 +121,11 @@ walker load_feed(visit_profile) {
 
     can report_feed with exit;
 
+}
+
+# Will not be required int the latest jac-cloud
+walker socket_event {
+    class __specs__ {
+        static has methods: list = ["websocket"];
+    }
 }

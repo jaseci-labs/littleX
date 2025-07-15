@@ -18,6 +18,10 @@ impl Profile.get {
 impl Profile.follow{
         current_profile = [root-->(`?Profile)];
         current_profile[0] +>:Follow():+> self;
+        socket.notify_users(
+            [&(f"n::{self.__jac__.root}")],
+            {"message": f"{current_profile[0].username} followed you!"}
+        );
         report self;
     }
 
@@ -25,6 +29,10 @@ impl Profile.un_follow {
         current_profile = [root-->(`?Profile)];
         follow_edge = [edge current_profile[0] ->:Follow:-> self];
         del follow_edge[0];
+        socket.notify_users(
+            [&(f"n::{self.__jac__.root}")],
+            {"message": f"{current_profile[0].username} unfollowed you!"}
+        );
         report self;
     }
 
@@ -56,6 +64,14 @@ impl Tweet.comment {
         comment_node = current_profile[0] +>:Post():+> Comment(content=visitor.content);
         _.perm_grant(comment_node[0], level="CONNECT");
         self ++> comment_node[0];
+        
+        if self.__jac__.root != current_profile.__jac__.root {
+            socket.notify_users(
+                [&(f"n::{self.__jac__.root}")],
+                {"message": f"{current_profile[0].username} commented on your tweet!"}
+            );
+        }
+        
         report comment_node[0];
     }
 
