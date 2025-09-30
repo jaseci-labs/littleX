@@ -103,3 +103,61 @@ test test_load_user_profiles {
     load_user_walker = root spawn load_user_profiles();
     check load_user_walker.profiles;
 }
+
+test chat_with_ai_basic {
+    root spawn create_tweet(content="AI is amazing!");
+    root spawn create_tweet(content="Learning Jac language today");
+    
+    result = root spawn chat_with_ai(
+        message="What topics are people discussing?",
+        chat_history=[]
+    );
+    
+    check result.response;
+    check len(result.chat_history) == 2;
+    check result.chat_history[0]["role"] == "user";
+    check result.chat_history[1]["role"] == "assistant";
+}
+
+test chat_with_ai_context {
+    first_result = root spawn chat_with_ai(
+        message="Summarize the tweets",
+        chat_history=[]
+    );
+    
+    second_result = root spawn chat_with_ai(
+        message="Tell me more about that",
+        chat_history=first_result.chat_history
+    );
+    
+    check second_result.response;
+    check len(second_result.chat_history) == 4;
+}
+
+test chat_with_ai_no_tweets {
+    empty_result = root spawn chat_with_ai(
+        message="What's happening?",
+        chat_history=[]
+    );
+    
+    check empty_result.response;
+    check "no tweets" in empty_result.response.lower() or empty_result.response;
+}
+
+test chat_with_ai_multiple_users {
+    profile1 = Profile("Thiru");
+    profile1 spawn follow_request();
+    profile1 spawn create_tweet("Working on my project");
+    
+    profile2 = Profile("Thami");
+    profile2 spawn follow_request();
+    profile2 spawn create_tweet("Great weather today");
+    
+    result = root spawn chat_with_ai(
+        message="Who is talking about what?",
+        chat_history=[]
+    );
+    
+    check result.response;
+    check "Thiru" in result.response.lower() or "Thami" in result.response.lower();
+}
