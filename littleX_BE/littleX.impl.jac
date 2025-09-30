@@ -127,3 +127,28 @@ impl load_feed.report_feed {
         self.results.sort(key=lambda x:dict:x['similarity'][0], reverse=True);
         report self.results;
 }
+
+impl chat_with_ai.chat {
+    current_profile = [root --> (`?Profile)][0];
+    feed_result = current_profile spawn load_feed(search_query="");
+    
+    tweets_text = "";
+    for item in feed_result.results {
+        tweet_info = item['Tweet_Info'];
+        tweets_text += f"@{tweet_info.username}: {tweet_info.content}\n";
+    }
+    
+    context = tweets_text if tweets_text else "No tweets available.";
+    
+    response = self.generate_response(
+        message=self.message,
+        chat_history=self.chat_history,
+        tweets_context=context
+    );
+    
+    self.chat_history.append({"role": "user", "content": self.message});
+    self.chat_history.append({"role": "assistant", "content": response});
+    self.response = response;
+    
+    report {"response": response, "chat_history": self.chat_history};
+}

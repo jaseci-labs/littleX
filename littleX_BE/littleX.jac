@@ -2,8 +2,11 @@ import datetime;
 import numpy;
 import from sklearn.feature_extraction.text { TfidfVectorizer }
 import from sklearn.metrics.pairwise { cosine_similarity }
+import from byllm.llm {Model}
 
 glob vectorizer = TfidfVectorizer();
+glob llm = Model(model_name="gemini/gemini-2.5-flash");
+#glob llm = Model(model_name="gemini/gemini-2.5-flash" , verbose=True);
 
 def search_tweets(query: str, tweet:str) -> int;
 
