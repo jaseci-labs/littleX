@@ -103,3 +103,42 @@ test test_load_user_profiles {
     load_user_walker = root spawn load_user_profiles();
     check load_user_walker.profiles;
 }
+
+test chat_with_ai_basic {
+    root spawn create_tweet(
+        content = "AI is amazing!",
+    );
+    root spawn create_tweet(
+        content = "Learning Jac language today",
+    );
+    result = root spawn chat_with_ai(
+        message = "What topics are people discussing?",
+    );
+    check result.response;
+    check len(result.chat_history) == 2;
+}
+
+test chat_with_ai_context {
+    first = root spawn chat_with_ai(
+        message = "Summarize the tweets",
+    );
+    second = root spawn chat_with_ai(
+        message = "Tell me more",
+        chat_history = first.chat_history,
+    );
+    check second.response;
+    check len(second.chat_history) == 4;
+}
+
+test chat_with_ai_multiple_users {
+    profile1 = Profile("Thiru");
+    profile1 spawn follow_request();
+    profile1 spawn create_tweet("Working on my project");
+    profile2 = Profile("Thami");
+    profile2 spawn follow_request();
+    profile2 spawn create_tweet("Great weather today");
+    result = root spawn chat_with_ai(
+        message = "Who is talking about what?",
+    );
+    check result.response;
+}
