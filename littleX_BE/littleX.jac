@@ -123,3 +123,16 @@ walker load_feed(visit_profile) {
     can report_feed with exit;
 
 }
+
+walker chat_with_ai {
+    has message: str;
+    has chat_history: list[dict] = [];
+    has response: str = "";
+    
+    """Generate helpful responses about tweets and social interactions. 
+    Analyze tweet content, provide insights, answer questions about the feed."""
+    def generate_response(message: str, chat_history: list[dict], tweets_context: str) -> str 
+        by llm(method="ReAct", temperature=0.7);
+    
+    can chat with `root entry;
+}
