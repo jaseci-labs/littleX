@@ -127,3 +127,20 @@ impl load_feed.report_feed {
         self.results.sort(key=lambda x:dict:x['similarity'][0], reverse=True);
         report self.results;
 }
+
+impl chat_with_ai.chat {
+    feeds = root spawn load_feed();
+    context = [i.get("Tweet_Info","") for i in feeds.results];
+    
+    response = self.generate_response(
+        message=self.message,
+        chat_history=self.chat_history,
+        tweets_context=context
+    );
+    
+    self.chat_history.append({"role": "user", "content": self.message});
+    self.chat_history.append({"role": "assistant", "content": response});
+    self.response = response;
+    
+    report {"response": response, "chat_history": self.chat_history};
+}
