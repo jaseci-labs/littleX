@@ -129,16 +129,8 @@ impl load_feed.report_feed {
 }
 
 impl chat_with_ai.chat {
-    current_profile = [root --> (`?Profile)][0];
-    feed_result = current_profile spawn load_feed(search_query="");
-    
-    tweets_text = "";
-    for item in feed_result.results {
-        tweet_info = item['Tweet_Info'];
-        tweets_text += f"@{tweet_info.username}: {tweet_info.content}\n";
-    }
-    
-    context = tweets_text if tweets_text else "No tweets available.";
+    feeds = root spawn load_feed();
+    context = [i.get("Tweet_Info","") for i in feeds.results];
     
     response = self.generate_response(
         message=self.message,
