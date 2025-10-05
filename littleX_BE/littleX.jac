@@ -60,11 +60,21 @@ node Comment {
     can delete with remove_comment entry;
 }
 
+node ChatSession {
+    has session_id: str;
+    has chat_history: list[dict] = [];
+
+    can chat with chat_with_ai entry;
+}
+
 edge Follow {}
 
 edge Like {}
 
 edge Post {}
+
+edge HasChatSession {}
+
 
 walker visit_profile {
     can visit_profile with `root entry;
@@ -125,7 +135,7 @@ walker load_feed(visit_profile) {
 
 }
 
-walker chat_with_ai {
+walker chat_with_ai(visit_profile) {
     has message: str;
     has chat_history: list[dict] = [];
     has response: str = "";
@@ -135,5 +145,6 @@ walker chat_with_ai {
     def generate_response(message: str, chat_history: list[dict], tweets_context: str) -> str 
         by llm(method="ReAct", temperature=0.7);
     
-    can chat with `root entry;
+    can init_session with Profile entry;
+    can chat with ChatSession entry;
 }

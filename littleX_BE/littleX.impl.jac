@@ -128,19 +128,32 @@ impl load_feed.report_feed {
         report self.results;
 }
 
+impl chat_with_ai.init_session {
+    visit [->:HasChatSession:->(`?ChatSession)] else {
+        session_node = here +>:HasChatSession():+> ChatSession(
+            session_id=f"session_{here.username}",
+            chat_history=[]
+        );
+        grant(session_node[0], level=ConnectPerm);
+        visit session_node;
+    }
+}
+
 impl chat_with_ai.chat {
     feeds = root spawn load_feed();
     context = [i.get("Tweet_Info","") for i in feeds.results];
     
-    response = self.generate_response(
-        message=self.message,
-        chat_history=self.chat_history,
+    visitor.chat_history = self.chat_history;
+    visitor.chat_history.append({"role": "user", "content": visitor.message});
+    
+    response = visitor.generate_response(
+        message=visitor.message,
+        chat_history=visitor.chat_history,
         tweets_context=context
     );
     
-    self.chat_history.append({"role": "user", "content": self.message});
-    self.chat_history.append({"role": "assistant", "content": response});
-    self.response = response;
-    
-    report {"response": response, "chat_history": self.chat_history};
+    visitor.chat_history.append({"role": "assistant", "content": response});
+    self.chat_history = visitor.chat_history;  
+    visitor.response = response;   
+    report {"response": response, "chat_history": visitor.chat_history};
 }
