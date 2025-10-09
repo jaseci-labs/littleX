@@ -63,8 +63,6 @@ node Comment {
 node ChatSession {
     has session_id: str;
     has chat_history: list[[dict]] = [];
-
-    can chat with chat_with_ai entry;
 }
 
 edge Follow {}

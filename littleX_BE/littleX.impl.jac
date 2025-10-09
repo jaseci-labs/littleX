@@ -150,6 +150,5 @@ impl chat_with_ai.chat {
     );
     
     here.chat_history.append([{"role": "user", "content": self.message},{"role": "assistant", "content":response});
-    self.response = response;   
     report {"response": response};
 }
