@@ -2,8 +2,12 @@ import datetime;
 import numpy;
 import from sklearn.feature_extraction.text { TfidfVectorizer }
 import from sklearn.metrics.pairwise { cosine_similarity }
+import from byllm.llm {Model}
 
 glob vectorizer = TfidfVectorizer();
+glob llm = Model(model_name="gemini/gemini-2.5-flash");
+#glob llm = Model(model_name="gemini/gemini-2.5-flash" , verbose=True);
+
 
 def search_tweets(query: str, tweet:str) -> int;
 
@@ -56,11 +60,19 @@ node Comment {
     can delete with remove_comment entry;
 }
 
+node ChatSession {
+    has session_id: str;
+    has chat_history: list[[dict]] = [];
+}
+
 edge Follow {}
 
 edge Like {}
 
 edge Post {}
+
+edge HasChatSession {}
+
 
 walker visit_profile {
     can visit_profile with `root entry;
@@ -119,4 +131,16 @@ walker load_feed(visit_profile) {
 
     can report_feed with exit;
 
+}
+
+walker chat_with_ai(visit_profile) {
+    has message: str;
+    
+    """Generate helpful responses about tweets and social interactions. 
+    Analyze tweet content, provide insights, answer questions about the feed."""
+    def generate_response(message: str, chat_history: list[[dict]], tweets_context: str) -> str 
+        by llm(method="ReAct", temperature=0.7);
+    
+    can init_session with Profile entry;
+    can chat with ChatSession entry;
 }

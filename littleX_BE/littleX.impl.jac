@@ -127,3 +127,28 @@ impl load_feed.report_feed {
         self.results.sort(key=lambda x:dict:x['similarity'][0], reverse=True);
         report self.results;
 }
+
+impl chat_with_ai.init_session {
+    visit [->:HasChatSession:->(`?ChatSession)] else {
+        session_node = here +>:HasChatSession():+> ChatSession(
+            session_id=f"session_{here.username}",
+            chat_history=[]
+        );
+        grant(session_node[0], level=ConnectPerm);
+        visit session_node;
+    }
+}
+
+impl chat_with_ai.chat {
+    feeds = root spawn load_feed();
+    context = [i.get("Tweet_Info","") for i in feeds.results];
+    
+    response = self.generate_response(
+        message=self.message,
+        chat_history=here.chat_history,
+        tweets_context=context
+    );
+    
+    here.chat_history.append([{"role": "user", "content": self.message},{"role": "assistant", "content":response});
+    report {"response": response};
+}
