@@ -143,17 +143,13 @@ impl chat_with_ai.chat {
     feeds = root spawn load_feed();
     context = [i.get("Tweet_Info","") for i in feeds.results];
     
-    visitor.chat_history = self.chat_history;
-    visitor.chat_history.append({"role": "user", "content": visitor.message});
-    
-    response = visitor.generate_response(
-        message=visitor.message,
-        chat_history=visitor.chat_history,
+    response = self.generate_response(
+        message=self.message,
+        chat_history=here.chat_history,
         tweets_context=context
     );
     
-    visitor.chat_history.append({"role": "assistant", "content": response});
-    self.chat_history = visitor.chat_history;  
-    visitor.response = response;   
-    report {"response": response, "chat_history": visitor.chat_history};
+    here.chat_history.append([{"role": "user", "content": self.message},{"role": "assistant", "content":response});
+    self.response = response;   
+    report {"response": response};
 }
