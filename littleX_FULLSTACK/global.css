@@ -778,7 +778,9 @@ body::before {
   font-family: "Plus Jakarta Sans", sans-serif;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: opacity 0.2s, transform 0.15s;
+  transition:
+    opacity 0.2s,
+    transform 0.15s;
 }
 
 .lx-search-btn:hover {
@@ -1536,4 +1538,283 @@ body::before {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Mobile Navigation (hidden on desktop) ── */
+
+.lx-mobile-nav {
+  display: none;
+}
+
+.lx-mobile-fab {
+  display: none;
+}
+
+.lx-mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--lx-text-muted);
+  transition:
+    color 0.15s,
+    background 0.15s;
+  position: relative;
+  user-select: none;
+}
+
+.lx-mobile-nav-item:hover {
+  color: var(--lx-text);
+}
+
+.lx-mobile-nav-item-active {
+  color: var(--lx-accent);
+}
+
+.lx-mobile-nav-item .lx-nav-badge {
+  position: absolute;
+  top: 4px;
+  right: 14px;
+  font-size: 0.6rem;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 0;
+}
+
+/* ── Responsive: Tablet (768px – 1099px) ── */
+
+@media (max-width: 1099px) {
+  .lx-sidebar-right {
+    display: none;
+  }
+
+  .lx-main {
+    max-width: none;
+    flex: 1;
+    border-right: none;
+    min-height: 94vh;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1099px) {
+  .lx-sidebar-left {
+    width: 72px;
+    padding: 0 0.25rem;
+    align-items: center;
+    border-right: 1px solid var(--lx-border);
+  }
+
+  .lx-brand {
+    justify-content: center;
+    padding: 1.1rem 0.25rem 0.6rem;
+  }
+
+  .lx-brand-name {
+    display: none;
+  }
+
+  .lx-nav-item {
+    justify-content: center;
+    padding: 0.8rem;
+    position: relative;
+  }
+
+  .lx-nav-item span:not(.lx-nav-badge) {
+    display: none;
+  }
+
+  .lx-nav-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    margin-left: 0;
+    font-size: 0.6rem;
+    min-width: 16px;
+    height: 16px;
+  }
+
+  .lx-compose-btn {
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border-radius: 50%;
+    margin: 0.75rem auto;
+  }
+
+  .lx-compose-btn span {
+    display: none;
+  }
+
+  .lx-sidebar-user {
+    justify-content: center;
+    padding: 0.65rem;
+  }
+
+  .lx-sidebar-user-info {
+    display: none;
+  }
+
+  .lx-logout-icon-btn {
+    display: none;
+  }
+}
+
+/* ── Responsive: Mobile (< 768px) ── */
+
+@media (max-width: 767px) {
+  .lx-root {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .lx-sidebar-left {
+    display: none;
+  }
+
+  .lx-main {
+    width: 100%;
+    max-width: 100%;
+    border-right: none;
+    min-height: 94vh;
+  }
+
+  /* Bottom navigation bar */
+  .lx-mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(56px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(6, 6, 7, 0.95);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border-top: 1px solid var(--lx-border);
+    z-index: 200;
+    align-items: center;
+    justify-content: space-around;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Floating action button for compose */
+  .lx-mobile-fab {
+    display: flex;
+    position: fixed;
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    right: 1rem;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(
+      135deg,
+      var(--lx-accent-light) 0%,
+      var(--lx-accent-dark) 100%
+    );
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(249, 115, 22, 0.45);
+    z-index: 200;
+    transition:
+      transform 0.2s,
+      box-shadow 0.2s;
+    font-family: "Plus Jakarta Sans", sans-serif;
+  }
+
+  .lx-mobile-fab:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 24px rgba(249, 115, 22, 0.55);
+  }
+
+  .lx-mobile-fab:active {
+    transform: scale(0.94);
+  }
+
+  /* Auth page: single column */
+  .lx-auth-root {
+    grid-template-columns: 1fr;
+  }
+
+  .lx-auth-left {
+    display: none;
+  }
+
+  .lx-auth-right {
+    padding: 2rem 1.25rem;
+    align-items: flex-start;
+    padding-top: 3rem;
+  }
+
+  .lx-auth-heading {
+    font-size: 2rem;
+  }
+
+  /* Tighter padding on mobile */
+  .lx-feed-header {
+    padding: 0.75rem 0.9rem;
+  }
+
+  .lx-composer {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .lx-tweet {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .lx-profile-info {
+    padding: 0 0.9rem 1rem;
+  }
+
+  .lx-explore-item {
+    padding: 0.75rem 0.9rem;
+  }
+
+  /* Composer textarea smaller on mobile */
+  .lx-composer-textarea {
+    font-size: 0.975rem;
+    min-height: 60px;
+  }
+
+  /* Profile banner shorter on mobile */
+  .lx-profile-banner {
+    height: 100px;
+  }
+
+  /* Welcome banner wraps gracefully */
+  .lx-welcome-banner {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.85rem 0.9rem;
+  }
+
+  .lx-welcome-dismiss {
+    align-self: flex-start;
+  }
+
+  /* Tweet actions fit on smaller screens */
+  .lx-act-btn {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.725rem;
+  }
+
+  /* Comment form stacks better */
+  .lx-comment-form {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .lx-comment-input {
+    flex: 1 1 100%;
+  }
+
+  .lx-comment-submit {
+    align-self: flex-end;
+  }
 }

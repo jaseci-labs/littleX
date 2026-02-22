@@ -415,5 +415,33 @@ def:pub app() -> Any {
                 </div>
             </div>
         </aside>
+
+        <nav className="lx-mobile-nav">
+            <div
+                className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "feed" else "")}
+                onClick={lambda -> None { activeTab = "feed"; }}
+            >
+                <Home size={24} />
+            </div>
+            <div
+                className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "explore" else "")}
+                onClick={lambda -> None { activeTab = "explore"; }}
+            >
+                <Compass size={24} />
+            </div>
+            <div
+                className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "profile" else "")}
+                onClick={lambda -> None { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
+            >
+                <User size={24} />
+                {(
+                    <span className="lx-nav-badge">{String(notifCount)}</span>
+                ) if notifCount > 0 else None}
+            </div>
+        </nav>
+
+        <button className="lx-mobile-fab" onClick={lambda -> None { activeTab = "feed"; }}>
+            <Feather size={22} />
+        </button>
     </div>;
 }
