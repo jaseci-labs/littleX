@@ -17,6 +17,7 @@ def:pub AuthForm(props: Any) -> Any {
         </div>
         <div className="lx-auth-right">
             <div className="lx-auth-box">
+                <img src="/static/assets/littlex-logo.png" className="lx-auth-mobile-logo" alt="little-x" />
                 <div className="lx-auth-heading">LITTLE-X</div>
                 <div className="lx-auth-sub">
                     {"Create your account and join the conversation" if isSignup else "Sign in to your account"}

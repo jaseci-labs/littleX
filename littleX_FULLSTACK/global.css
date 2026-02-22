@@ -1142,6 +1142,10 @@ body::before {
   animation: fadeUp 0.4s ease both;
 }
 
+.lx-auth-mobile-logo {
+  display: none;
+}
+
 .lx-auth-right {
   display: flex;
   align-items: center;
@@ -1747,8 +1751,24 @@ body::before {
 
   .lx-auth-right {
     padding: 2rem 1.25rem;
-    align-items: flex-start;
-    padding-top: 3rem;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .lx-auth-box {
+    max-width: 100%;
+    padding-top: 0;
+  }
+
+  .lx-auth-mobile-logo {
+    display: block;
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.45));
+    animation: fadeUp 0.35s ease both;
+    margin-bottom: 0.25rem;
   }
 
   .lx-auth-heading {
