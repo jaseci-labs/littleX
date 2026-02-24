@@ -12,7 +12,13 @@ import from server {
         like_tweet,
         add_comment,
         load_feed,
-        get_trending
+        get_trending,
+        create_channel,
+        join_channel,
+        leave_channel,
+        get_channels,
+        get_channel_detail,
+        create_channel_tweet
     }
 
 

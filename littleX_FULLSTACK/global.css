@@ -1525,6 +1525,134 @@ body::before {
   background: var(--lx-accent-glow2);
 }
 
+/* ── Channels ── */
+
+.lx-channel-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1.1rem;
+  border-bottom: 1px solid var(--lx-border);
+}
+
+.lx-channel-actions .lx-post-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lx-channel-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--lx-border);
+  background: var(--lx-bg-card);
+  animation: fadeUp 0.2s ease both;
+}
+
+.lx-channel-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  border-bottom: 1px solid var(--lx-border);
+  cursor: pointer;
+  transition: background 0.15s;
+  animation: fadeUp 0.2s ease both;
+}
+
+.lx-channel-item:hover {
+  background: var(--lx-bg-hover);
+}
+
+.lx-channel-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--lx-accent-glow2);
+  border: 1px solid var(--lx-accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--lx-accent);
+  flex-shrink: 0;
+}
+
+.lx-channel-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.lx-channel-item-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--lx-text);
+  letter-spacing: -0.1px;
+}
+
+.lx-channel-item-desc {
+  font-size: 0.8rem;
+  color: var(--lx-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 0.1rem;
+}
+
+.lx-channel-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.725rem;
+  color: var(--lx-text-muted);
+  margin-top: 0.2rem;
+}
+
+.lx-channel-joined-badge {
+  font-size: 0.725rem;
+  font-weight: 700;
+  color: var(--lx-accent);
+  background: var(--lx-accent-glow);
+  border: 1px solid var(--lx-accent-border);
+  border-radius: 6px;
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.lx-channel-header {
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--lx-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lx-channel-name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: "Poppins", sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--lx-accent);
+  letter-spacing: -0.3px;
+}
+
+.lx-channel-desc {
+  font-size: 0.85rem;
+  color: var(--lx-text-secondary);
+  line-height: 1.5;
+}
+
+.lx-channel-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--lx-text-muted);
+}
+
 /* ── Scrollbar ── */
 
 ::-webkit-scrollbar {

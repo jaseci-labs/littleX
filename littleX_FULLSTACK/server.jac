@@ -36,8 +36,17 @@ node Tweet {
     has comments: list = [];
 }
 
+node Channel {
+    has name: str = "";
+    has description: str = "";
+    has creator_username: str = "";
+    has created_at: str = "";
+}
+
 edge Follow {}
 edge Post {}
+edge Member {}
+edge ChannelPost {}
 
 walker setup_profile {
     has username: str = "";
@@ -215,6 +224,15 @@ walker delete_tweet {
                 disengage;
             }
         }
+        for channel in [profile-->(?:Channel)] {
+            for tweet in [channel-->(?:Tweet)] {
+                if jid(tweet) == self.tweet_id and tweet.author_username == profile.username {
+                    del tweet;
+                    report {"success": True};
+                    disengage;
+                }
+            }
+        }
         report {"error": "Tweet not found"};
     }
 }
@@ -244,6 +262,20 @@ walker like_tweet {
                         disengage;
                     }
                 }
+                for channel in [prof_list[0]-->(?:Channel)] {
+                    for tweet in [channel-->(?:Tweet)] {
+                        if jid(tweet) == self.tweet_id {
+                            if username in tweet.likes {
+                                tweet.likes = [u for u in tweet.likes if u != username];
+                                report {"liked": False, "likes": tweet.likes};
+                            } else {
+                                tweet.likes = tweet.likes + [username];
+                                report {"liked": True, "likes": tweet.likes};
+                            }
+                            disengage;
+                        }
+                    }
+                }
             }
         }
         report {"error": "Tweet not found"};
@@ -270,6 +302,16 @@ walker add_comment {
                         tweet.comments = tweet.comments + [comment];
                         report {"success": True, "comment": comment};
                         disengage;
+                    }
+                }
+                for channel in [prof_list[0]-->(?:Channel)] {
+                    for tweet in [channel-->(?:Tweet)] {
+                        if jid(tweet) == self.tweet_id {
+                            comment = {"username": username, "content": self.content, "created_at": _now()};
+                            tweet.comments = tweet.comments + [comment];
+                            report {"success": True, "comment": comment};
+                            disengage;
+                        }
                     }
                 }
             }
@@ -350,5 +392,230 @@ walker load_feed {
         }
 
         report all_tweets;
+    }
+}
+
+walker create_channel {
+    has name: str;
+    has description: str = "";
+
+    can run with Root entry {
+        profiles = [-->(?:Profile)];
+        if not profiles {
+            report {"error": "No profile"};
+            disengage;
+        }
+        profile = profiles[0];
+        channel_nodes = profile +>:Member():+> Channel(
+            name=self.name,
+            description=self.description,
+            creator_username=profile.username,
+            created_at=_now()
+        );
+        ch = channel_nodes[0];
+        grant(ch, level=ConnectPerm);
+        report {
+            "id": jid(ch),
+            "name": ch.name,
+            "description": ch.description,
+            "creator_username": ch.creator_username,
+            "created_at": ch.created_at,
+            "member_count": 1,
+            "is_member": True
+        };
+    }
+}
+
+walker join_channel {
+    has channel_id: str;
+
+    can run with Root entry {
+        profiles = [-->(?:Profile)];
+        if not profiles {
+            report {"error": "No profile"};
+            disengage;
+        }
+        profile = profiles[0];
+        for r in allroots() {
+            prof_list = [r-->(?:Profile)];
+            if prof_list {
+                for ch in [prof_list[0]-->(?:Channel)] {
+                    if jid(ch) == self.channel_id {
+                        already = [edge profile ->:Member:-> ch];
+                        if not already {
+                            profile +>:Member():+> ch;
+                        }
+                        report {"success": True};
+                        disengage;
+                    }
+                }
+            }
+        }
+        report {"error": "Channel not found"};
+    }
+}
+
+walker leave_channel {
+    has channel_id: str;
+
+    can run with Root entry {
+        profiles = [-->(?:Profile)];
+        if not profiles {
+            report {"error": "No profile"};
+            disengage;
+        }
+        profile = profiles[0];
+        for ch in [profile-->(?:Channel)] {
+            if jid(ch) == self.channel_id {
+                member_edges = [edge profile ->:Member:-> ch];
+                if member_edges {
+                    del member_edges[0];
+                }
+                report {"success": True};
+                disengage;
+            }
+        }
+        report {"error": "Channel not found"};
+    }
+}
+
+walker get_channels {
+    can run with Root entry {
+        my_profiles = [-->(?:Profile)];
+        my_profile = my_profiles[0] if my_profiles else None;
+        my_channel_ids: list = [];
+        if my_profile {
+            my_channel_ids = [jid(ch) for ch in [my_profile-->(?:Channel)]];
+        }
+
+        seen: dict = {};
+        channels: list = [];
+        for r in allroots() {
+            prof_list = [r-->(?:Profile)];
+            if prof_list {
+                for ch in [prof_list[0]-->(?:Channel)] {
+                    ch_id = jid(ch);
+                    if ch_id not in seen {
+                        member_count = 0;
+                        for r2 in allroots() {
+                            p2 = [r2-->(?:Profile)];
+                            if p2 {
+                                edges_to_ch = [edge p2[0] ->:Member:-> ch];
+                                if edges_to_ch {
+                                    member_count += 1;
+                                }
+                            }
+                        }
+                        seen[ch_id] = True;
+                        channels.append({
+                            "id": ch_id,
+                            "name": ch.name,
+                            "description": ch.description,
+                            "creator_username": ch.creator_username,
+                            "created_at": ch.created_at,
+                            "member_count": member_count,
+                            "is_member": ch_id in my_channel_ids
+                        });
+                    }
+                }
+            }
+        }
+        channels.sort(key=lambda c: c["created_at"], reverse=True);
+        report channels;
+    }
+}
+
+walker get_channel_detail {
+    has channel_id: str;
+
+    can run with Root entry {
+        my_profiles = [-->(?:Profile)];
+        my_profile = my_profiles[0] if my_profiles else None;
+        is_member = False;
+
+        for r in allroots() {
+            prof_list = [r-->(?:Profile)];
+            if prof_list {
+                for ch in [prof_list[0]-->(?:Channel)] {
+                    if jid(ch) == self.channel_id {
+                        member_count = 0;
+                        for r2 in allroots() {
+                            p2 = [r2-->(?:Profile)];
+                            if p2 {
+                                edges_to_ch = [edge p2[0] ->:Member:-> ch];
+                                if edges_to_ch {
+                                    member_count += 1;
+                                }
+                            }
+                        }
+                        if my_profile {
+                            my_edges = [edge my_profile ->:Member:-> ch];
+                            is_member = True if my_edges else False;
+                        }
+                        posts: list = [];
+                        for tweet in [ch-->(?:Tweet)] {
+                            posts.append({
+                                "id": jid(tweet),
+                                "content": tweet.content,
+                                "author_username": tweet.author_username,
+                                "created_at": tweet.created_at,
+                                "likes": tweet.likes,
+                                "comments": tweet.comments
+                            });
+                        }
+                        posts.sort(key=lambda p: p["created_at"], reverse=True);
+                        report {
+                            "id": jid(ch),
+                            "name": ch.name,
+                            "description": ch.description,
+                            "creator_username": ch.creator_username,
+                            "created_at": ch.created_at,
+                            "member_count": member_count,
+                            "is_member": is_member,
+                            "posts": posts
+                        };
+                        disengage;
+                    }
+                }
+            }
+        }
+        report {"error": "Channel not found"};
+    }
+}
+
+walker create_channel_tweet {
+    has channel_id: str;
+    has content: str;
+
+    can run with Root entry {
+        profiles = [-->(?:Profile)];
+        if not profiles {
+            report {"error": "No profile"};
+            disengage;
+        }
+        profile = profiles[0];
+        for ch in [profile-->(?:Channel)] {
+            if jid(ch) == self.channel_id {
+                tweet = ch +>:ChannelPost():+> Tweet(
+                    content=self.content,
+                    author_username=profile.username,
+                    created_at=_now(),
+                    likes=[],
+                    comments=[]
+                );
+                grant(tweet[0], level=ConnectPerm);
+                t = tweet[0];
+                report {
+                    "id": jid(t),
+                    "content": t.content,
+                    "author_username": t.author_username,
+                    "created_at": t.created_at,
+                    "likes": t.likes,
+                    "comments": t.comments
+                };
+                disengage;
+            }
+        }
+        report {"error": "Not a member of this channel"};
     }
 }

@@ -1,8 +1,8 @@
 """Little X - Frontend declarations."""
 
 import from "@jac/runtime" { jacSignup, jacLogin, jacLogout, jacIsLoggedIn }
-sv import from .server { setup_profile, get_profile, get_all_profiles, follow_user, unfollow_user, create_tweet, delete_tweet, like_tweet, add_comment, load_feed, get_trending }
-import from "lucide-react" { Home, Compass, User, LogOut, Search, Feather }
+sv import from .server { setup_profile, get_profile, get_all_profiles, follow_user, unfollow_user, create_tweet, delete_tweet, like_tweet, add_comment, load_feed, get_trending, create_channel, join_channel, leave_channel, get_channels, get_channel_detail, create_channel_tweet }
+import from "lucide-react" { Home, Compass, User, LogOut, Search, Feather, Hash, Users, Plus, ArrowLeft }
 import from .components.TweetCard { TweetCard }
 import from .components.AuthForm { AuthForm }
 import "./global.css";
@@ -26,7 +26,15 @@ def:pub app() -> Any {
         bioText: str = "",
         trendingTags: list = [],
         notifCount: int = 0,
-        showWelcome: bool = False;
+        showWelcome: bool = False,
+        channels: list = [],
+        channelsLoading: bool = False,
+        selectedChannel: Any = None,
+        channelPosts: list = [],
+        channelComposerText: str = "",
+        showCreateChannel: bool = False,
+        newChannelName: str = "",
+        newChannelDescription: str = "";
 
     can with entry {
         isLoggedIn = jacIsLoggedIn();
@@ -54,6 +62,13 @@ def:pub app() -> Any {
     async def handleSearch(query: str) -> None;
     def handleRepost(tweetId: str, content: str, author: str) -> None;
     def handleDismissWelcome() -> None;
+    async def loadChannels() -> None;
+    async def handleCreateChannel() -> None;
+    async def handleJoinChannel(channelId: str) -> None;
+    async def handleLeaveChannel(channelId: str) -> None;
+    async def handleSelectChannel(channelId: str) -> None;
+    async def handleChannelPost() -> None;
+    def handleBackToChannels() -> None;
 
     if checkingAuth {
         return <div className="lx-loading">Loading...</div>;
@@ -107,6 +122,13 @@ def:pub app() -> Any {
                     <span>Explore</span>
                 </div>
                 <div
+                    className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "channels" else "")}
+                    onClick={lambda -> None { activeTab = "channels"; loadChannels(); }}
+                >
+                    <Hash size={22} />
+                    <span>Channels</span>
+                </div>
+                <div
                     className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "profile" else "")}
                     onClick={lambda -> None { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
                 >
@@ -140,7 +162,7 @@ def:pub app() -> Any {
         <main className="lx-main">
             <div className="lx-feed-header">
                 <span className="lx-feed-title">
-                    {("Home" if activeTab == "feed" else ("Explore" if activeTab == "explore" else "Profile"))}
+                    {("Home" if activeTab == "feed" else ("Explore" if activeTab == "explore" else ("Channels" if activeTab == "channels" else "Profile")))}
                 </span>
                 {(
                     <button
@@ -271,6 +293,179 @@ def:pub app() -> Any {
                     ]}
                 </div>
             ) if activeTab == "explore" else None}
+
+            {(
+                <div>
+                    {(
+                        <div>
+                            <div className="lx-channel-actions">
+                                <button
+                                    className="lx-post-btn"
+                                    onClick={lambda -> None { showCreateChannel = not showCreateChannel; }}
+                                >
+                                    <Plus size={16} />
+                                    {"Create Channel"}
+                                </button>
+                            </div>
+
+                            {(
+                                <div className="lx-channel-create-form">
+                                    <input
+                                        className="lx-input"
+                                        placeholder="Channel name"
+                                        value={newChannelName}
+                                        onChange={lambda e: Any -> None { newChannelName = e.target.value; }}
+                                    />
+                                    <input
+                                        className="lx-input"
+                                        placeholder="Description (optional)"
+                                        value={newChannelDescription}
+                                        onChange={lambda e: Any -> None { newChannelDescription = e.target.value; }}
+                                    />
+                                    <div style={{"display": "flex", "gap": "0.5rem"}}>
+                                        <button
+                                            className="lx-post-btn"
+                                            disabled={not newChannelName.trim()}
+                                            onClick={lambda -> None { handleCreateChannel(); }}
+                                        >
+                                            Create
+                                        </button>
+                                        <button
+                                            className="lx-edit-profile-btn"
+                                            onClick={lambda -> None { showCreateChannel = False; newChannelName = ""; newChannelDescription = ""; }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) if showCreateChannel else None}
+
+                            {(
+                                <div className="lx-loading">Loading channels...</div>
+                            ) if channelsLoading else None}
+
+                            {(
+                                <div>
+                                    {(
+                                        <div className="lx-empty">
+                                            <div className="lx-empty-title">No channels yet</div>
+                                            <span>Create one to get started!</span>
+                                        </div>
+                                    ) if channels.length == 0 else None}
+                                    {[
+                                        <div
+                                            className="lx-channel-item"
+                                            key={ch["id"]}
+                                            onClick={lambda -> None { handleSelectChannel(ch["id"]); }}
+                                        >
+                                            <div className="lx-channel-icon">
+                                                <Hash size={20} />
+                                            </div>
+                                            <div className="lx-channel-item-info">
+                                                <div className="lx-channel-item-name">{ch["name"]}</div>
+                                                {(
+                                                    <div className="lx-channel-item-desc">{ch["description"]}</div>
+                                                ) if ch["description"] else None}
+                                                <div className="lx-channel-item-meta">
+                                                    <Users size={12} />
+                                                    <span>{String(ch["member_count"]) + " members"}</span>
+                                                </div>
+                                            </div>
+                                            {(
+                                                <span className="lx-channel-joined-badge">Joined</span>
+                                            ) if ch["is_member"] else None}
+                                        </div>
+                                        for ch in channels
+                                    ]}
+                                </div>
+                            ) if not channelsLoading else None}
+                        </div>
+                    ) if not selectedChannel else (
+                        <div>
+                            <div className="lx-channel-header">
+                                <button
+                                    className="lx-edit-profile-btn"
+                                    onClick={lambda -> None { handleBackToChannels(); }}
+                                    style={{"display": "flex", "alignItems": "center", "gap": "0.3rem"}}
+                                >
+                                    <ArrowLeft size={16} />
+                                    Back
+                                </button>
+                                <div className="lx-channel-name">
+                                    <Hash size={20} />
+                                    {selectedChannel.name}
+                                </div>
+                                {(
+                                    <div className="lx-channel-desc">{selectedChannel.description}</div>
+                                ) if selectedChannel.description else None}
+                                <div className="lx-channel-meta">
+                                    <Users size={14} />
+                                    <span>{String(selectedChannel.member_count) + " members"}</span>
+                                    {(
+                                        <button
+                                            className="lx-edit-profile-btn"
+                                            onClick={lambda -> None { handleLeaveChannel(selectedChannel.id); }}
+                                        >
+                                            Leave
+                                        </button>
+                                    ) if selectedChannel.is_member else (
+                                        <button
+                                            className="lx-follow-btn"
+                                            onClick={lambda -> None { handleJoinChannel(selectedChannel.id); }}
+                                        >
+                                            Join
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            {(
+                                <div className="lx-composer">
+                                    <img className="lx-avatar" src={profileAvatar} alt={profileUsername} />
+                                    <div className="lx-composer-body">
+                                        <textarea
+                                            className="lx-composer-textarea"
+                                            placeholder={"Post in #" + selectedChannel.name}
+                                            value={channelComposerText}
+                                            onChange={lambda e: Any -> None { channelComposerText = e.target.value; }}
+                                            rows={2}
+                                        />
+                                        <div className="lx-composer-footer">
+                                            <div />
+                                            <button
+                                                className="lx-post-btn"
+                                                disabled={not channelComposerText.trim()}
+                                                onClick={lambda -> None { handleChannelPost(); }}
+                                            >
+                                                Post
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) if selectedChannel.is_member else None}
+
+                            {(
+                                <div className="lx-empty">
+                                    <div className="lx-empty-title">No posts yet</div>
+                                    <span>{("Be the first to post!" if selectedChannel.is_member else "Join this channel to post!")}</span>
+                                </div>
+                            ) if channelPosts.length == 0 else None}
+
+                            {[
+                                <TweetCard
+                                    key={tweet["id"]}
+                                    tweet={tweet}
+                                    myUsername={profileUsername}
+                                    onLike={handleLike}
+                                    onComment={handleComment}
+                                    onDelete={handleDelete}
+                                    onRepost={handleRepost}
+                                /> for tweet in channelPosts
+                            ]}
+                        </div>
+                    )}
+                </div>
+            ) if activeTab == "channels" else None}
 
             {(
                 <div>
@@ -428,6 +623,12 @@ def:pub app() -> Any {
                 onClick={lambda -> None { activeTab = "explore"; }}
             >
                 <Compass size={24} />
+            </div>
+            <div
+                className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "channels" else "")}
+                onClick={lambda -> None { activeTab = "channels"; loadChannels(); }}
+            >
+                <Hash size={24} />
             </div>
             <div
                 className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "profile" else "")}
