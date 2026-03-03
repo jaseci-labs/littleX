@@ -34,20 +34,18 @@ impl Tweet.get_tweet_dict(is_mine: bool = False) -> dict {
 # ============================================================================
 
 impl Channel.get_member_count -> int {
-    count = 0;
+    members: list = [];
     for r in allroots() {
         p_list = [r-->(?:Profile)];
-        if p_list {
-            if [edge p_list[0] ->:Member:-> self] {
-                count += 1;
-            }
+        if p_list and [edge p_list[0] ->:Member:-> self] {
+            members.append(p_list[0]);
         }
     }
-    return count;
+    return len(members);
 }
 
 impl Channel.is_member_of(profile: Profile) -> bool {
-    return True if [edge profile ->:Member:-> self] else False;
+    return bool([edge profile ->:Member:-> self]);
 }
 
 impl Channel.get_channel_dict(my_profile: Profile = None) -> dict {
@@ -117,8 +115,7 @@ impl Profile.get {
         }
     }
 
-    tweets: list = [t.get_tweet_dict() for t in [self-->(?:Tweet)]];
-    tweets.sort(key=lambda t: t["created_at"], reverse=True);
+    tweets = sorted([t.get_tweet_dict() for t in [self-->(?:Tweet)]], key=lambda t: t["created_at"], reverse=True);
 
     report {
         "id": my_id,
@@ -141,16 +138,10 @@ impl Profile.tweet {
 }
 
 impl Profile.do_feed {
-    all_tweets: list = [];
-
-    for tweet in [self-->(?:Tweet)] {
-        all_tweets.append(tweet.get_tweet_dict(is_mine=True));
-    }
+    all_tweets = [tweet.get_tweet_dict(is_mine=True) for tweet in [self-->(?:Tweet)]];
 
     for followed in [self->:Follow:->(?:Profile)] {
-        for tweet in [followed-->(?:Tweet)] {
-            all_tweets.append(tweet.get_tweet_dict(is_mine=False));
-        }
+        all_tweets += [tweet.get_tweet_dict(is_mine=False) for tweet in [followed-->(?:Tweet)]];
     }
 
     if visitor.search_query {
@@ -158,8 +149,7 @@ impl Profile.do_feed {
         all_tweets = [t for t in all_tweets if q in t["content"].lower()];
     }
 
-    all_tweets.sort(key=lambda t: t["created_at"], reverse=True);
-    report all_tweets;
+    report sorted(all_tweets, key=lambda t: t["created_at"], reverse=True);
 }
 
 impl Profile.do_create_channel {
@@ -381,11 +371,7 @@ impl get_trending.run {
                 for word in tweet.content.split() {
                     if word.startswith("#") and len(word) > 1 {
                         tag = word.lower().rstrip(".,!?;:");
-                        if tag in tag_counts {
-                            tag_counts[tag] += 1;
-                        } else {
-                            tag_counts[tag] = 1;
-                        }
+                        tag_counts[tag] = tag_counts.get(tag, 0) + 1;
                     }
                 }
             }
@@ -443,7 +429,7 @@ impl get_channels.run {
     my_profiles = [-->(?:Profile)];
     my_profile = my_profiles[0] if my_profiles else None;
 
-    seen: dict = {};
+    seen: set = set();
     channels: list = [];
     for r in allroots() {
         prof_list = [r-->(?:Profile)];
@@ -451,14 +437,13 @@ impl get_channels.run {
             for ch in [prof_list[0]-->(?:Channel)] {
                 ch_id = jid(ch);
                 if ch_id not in seen {
-                    seen[ch_id] = True;
+                    seen.add(ch_id);
                     channels.append(ch.get_channel_dict(my_profile=my_profile));
                 }
             }
         }
     }
-    channels.sort(key=lambda c: c["created_at"], reverse=True);
-    report channels;
+    report sorted(channels, key=lambda c: c["created_at"], reverse=True);
 }
 
 impl get_channel_detail.run {
@@ -470,11 +455,8 @@ impl get_channel_detail.run {
         if prof_list {
             for ch in [prof_list[0]-->(?:Channel)] {
                 if jid(ch) == self.channel_id {
-                    posts: list = [t.get_tweet_dict() for t in [ch-->(?:Tweet)]];
-                    posts.sort(key=lambda p: p["created_at"], reverse=True);
-                    result = ch.get_channel_dict(my_profile=my_profile);
-                    result["posts"] = posts;
-                    report result;
+                    posts = sorted([t.get_tweet_dict() for t in [ch-->(?:Tweet)]], key=lambda p: p["created_at"], reverse=True);
+                    report ch.get_channel_dict(my_profile=my_profile) | {"posts": posts};
                     disengage;
                 }
             }

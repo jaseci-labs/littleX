@@ -18,23 +18,23 @@ def:pub TweetCard(props: Any) -> Any {
     deleteFn = onDelete;
     repostFn = onRepost;
 
-    is_liked = tweet["likes"].includes(myUsername);
-    like_count = String(len(tweet["likes"]));
-    comment_count = String(len(tweet["comments"]));
+    is_liked = myUsername in tweet["likes"];
+    like_count = str(len(tweet["likes"]));
+    comment_count = str(len(tweet["comments"]));
     author_avatar = "https://i.pravatar.cc/150?u=fake@" + tweet["author_username"];
 
     raw_name = tweet["author_username"] if tweet["author_username"] else "unknown";
-    display_name = raw_name.split("@")[0] if raw_name.includes("@") else raw_name;
+    display_name = raw_name.split("@")[0] if "@" in raw_name else raw_name;
 
     diff_ms = Date.now() - Reflect.construct(Date, [tweet["created_at"]]).getTime() if tweet["created_at"] else 0;
-    diff_min = Math.floor(diff_ms / 60000);
-    diff_hr = Math.floor(diff_min / 60);
-    diff_day = Math.floor(diff_hr / 24);
+    diff_min = diff_ms // 60000;
+    diff_hr = diff_min // 60;
+    diff_day = diff_hr // 24;
     date_str = (
         "now" if diff_min < 1 else (
-            String(diff_min) + "m" if diff_hr < 1 else (
-                String(diff_hr) + "h" if diff_day < 1 else (
-                    String(diff_day) + "d" if diff_day < 30 else tweet["created_at"].substring(0, 10)
+            str(diff_min) + "m" if diff_hr < 1 else (
+                str(diff_hr) + "h" if diff_day < 1 else (
+                    str(diff_day) + "d" if diff_day < 30 else tweet["created_at"][:10]
                 )
             )
         )

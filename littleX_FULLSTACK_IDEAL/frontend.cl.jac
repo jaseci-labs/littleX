@@ -89,15 +89,15 @@ def:pub app() -> Any {
     }
 
     profileUsername = myProfile.username if myProfile else "";
-    displayUsername = profileUsername.split("@")[0] if profileUsername.includes("@") else profileUsername;
+    displayUsername = profileUsername.split("@")[0] if "@" in profileUsername else profileUsername;
     profileAvatar = "https://i.pravatar.cc/150?u=fake@" + profileUsername;
     followingIds = [f["id"] for f in myProfile.following] if myProfile and myProfile.following else [];
-    charsLeft = 280 - composerText.length;
-    ring_progress = Math.min(1.0, (280 - charsLeft) / 280.0);
-    ring_offset = String(62.83 * (1.0 - ring_progress));
+    charsLeft = 280 - len(composerText);
+    ring_progress = min(1.0, (280 - charsLeft) / 280.0);
+    ring_offset = str(62.83 * (1.0 - ring_progress));
     ring_color = "#ef4444" if charsLeft < 0 else ("#f97316" if charsLeft < 50 else ("#fb923c" if charsLeft < 100 else "#2a2a35"));
-    toFollow = [u for u in allProfiles if not followingIds.includes(u["id"]) and u["id"] != (myProfile.id if myProfile else "")];
-    current_total_activity = (myProfile.tweets if myProfile and myProfile.tweets else []).reduce(lambda acc, t: acc + t["likes"].length + t["comments"].length, 0);
+    toFollow = [u for u in allProfiles if u["id"] not in followingIds and u["id"] != (myProfile.id if myProfile else "")];
+    current_total_activity = sum([len(t["likes"]) + len(t["comments"]) for t in (myProfile.tweets if myProfile and myProfile.tweets else [])]);
 
     return <div className="lx-root">
         <aside className="lx-sidebar-left">
@@ -130,12 +130,12 @@ def:pub app() -> Any {
                 </div>
                 <div
                     className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "profile" else "")}
-                    onClick={lambda -> None { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
+                    onClick={lambda -> None { activeTab = "profile"; localStorage.setItem("lx_activity_total", str(current_total_activity)); notifCount = 0; }}
                 >
                     <User size={22} />
                     <span>Profile</span>
                     {(
-                        <span className="lx-nav-badge">{String(notifCount)}</span>
+                        <span className="lx-nav-badge">{str(notifCount)}</span>
                     ) if notifCount > 0 else None}
                 </div>
             </nav>
@@ -217,7 +217,7 @@ def:pub app() -> Any {
                                     </svg>
                                     {(
                                         <span className={"lx-char-count-over" if charsLeft < 0 else "lx-char-count-warn"}>
-                                            {String(charsLeft)}
+                                            {str(charsLeft)}
                                         </span>
                                     ) if charsLeft <= 20 else None}
                                 </div>
@@ -243,7 +243,7 @@ def:pub app() -> Any {
                                     <div className="lx-empty-title">Nothing here yet</div>
                                     <span>Follow people or post something!</span>
                                 </div>
-                            ) if tweets.length == 0 else None}
+                            ) if len(tweets) == 0 else None}
                             {[
                                 <TweetCard
                                     key={tweet["id"]}
@@ -269,8 +269,8 @@ def:pub app() -> Any {
                         <div className="lx-explore-item" key={u["id"]}>
                             <img className="lx-avatar" src={"https://i.pravatar.cc/150?u=fake@" + u["username"]} alt={u["username"]} />
                             <div className="lx-explore-info">
-                                <div className="lx-explore-name">{u["username"].split("@")[0] if u["username"].includes("@") else u["username"]}</div>
-                                <div className="lx-explore-handle">{"@" + (u["username"].split("@")[0] if u["username"].includes("@") else u["username"])}</div>
+                                <div className="lx-explore-name">{u["username"].split("@")[0] if "@" in u["username"] else u["username"]}</div>
+                                <div className="lx-explore-handle">{"@" + (u["username"].split("@")[0] if "@" in u["username"] else u["username"])}</div>
                                 <div className="lx-explore-bio">{u["bio"] if u["bio"] else "No bio yet"}</div>
                             </div>
                             {(
@@ -280,7 +280,7 @@ def:pub app() -> Any {
                                 >
                                     Following
                                 </button>
-                            ) if followingIds.includes(u["id"]) else (
+                            ) if u["id"] in followingIds else (
                                 <button
                                     className="lx-follow-btn"
                                     onClick={lambda -> None { handleFollow(u["id"]); }}
@@ -351,7 +351,7 @@ def:pub app() -> Any {
                                             <div className="lx-empty-title">No channels yet</div>
                                             <span>Create one to get started!</span>
                                         </div>
-                                    ) if channels.length == 0 else None}
+                                    ) if len(channels) == 0 else None}
                                     {[
                                         <div
                                             className="lx-channel-item"
@@ -368,7 +368,7 @@ def:pub app() -> Any {
                                                 ) if ch["description"] else None}
                                                 <div className="lx-channel-item-meta">
                                                     <Users size={12} />
-                                                    <span>{String(ch["member_count"]) + " members"}</span>
+                                                    <span>{str(ch["member_count"]) + " members"}</span>
                                                 </div>
                                             </div>
                                             {(
@@ -400,7 +400,7 @@ def:pub app() -> Any {
                                 ) if selectedChannel.description else None}
                                 <div className="lx-channel-meta">
                                     <Users size={14} />
-                                    <span>{String(selectedChannel.member_count) + " members"}</span>
+                                    <span>{str(selectedChannel.member_count) + " members"}</span>
                                     {(
                                         <button
                                             className="lx-edit-profile-btn"
@@ -449,7 +449,7 @@ def:pub app() -> Any {
                                     <div className="lx-empty-title">No posts yet</div>
                                     <span>{("Be the first to post!" if selectedChannel.is_member else "Join this channel to post!")}</span>
                                 </div>
-                            ) if channelPosts.length == 0 else None}
+                            ) if len(channelPosts) == 0 else None}
 
                             {[
                                 <TweetCard
@@ -505,15 +505,15 @@ def:pub app() -> Any {
                         ) if editingBio else None}
                         <div className="lx-profile-stats">
                             <div className="lx-profile-stat">
-                                <strong>{String(len(myProfile.following) if myProfile and myProfile.following else 0)}</strong>
+                                <strong>{str(len(myProfile.following) if myProfile and myProfile.following else 0)}</strong>
                                 Following
                             </div>
                             <div className="lx-profile-stat">
-                                <strong>{String(len(myProfile.followers) if myProfile and myProfile.followers else 0)}</strong>
+                                <strong>{str(len(myProfile.followers) if myProfile and myProfile.followers else 0)}</strong>
                                 Followers
                             </div>
                             <div className="lx-profile-stat">
-                                <strong>{String(len(myProfile.tweets) if myProfile and myProfile.tweets else 0)}</strong>
+                                <strong>{str(len(myProfile.tweets) if myProfile and myProfile.tweets else 0)}</strong>
                                 Posts
                             </div>
                         </div>
@@ -565,12 +565,12 @@ def:pub app() -> Any {
                                 onClick={lambda -> None { searchQuery = t["tag"]; handleSearch(t["tag"]); activeTab = "feed"; }}
                             >
                                 <span className="lx-trend-tag">{t["tag"]}</span>
-                                <span className="lx-trend-count">{String(t["count"]) + " posts"}</span>
+                                <span className="lx-trend-count">{str(t["count"]) + " posts"}</span>
                             </div>
                             for t in trendingTags
                         ]}
                     </div>
-                ) if trendingTags.length > 0 else None}
+                ) if len(trendingTags) > 0 else None}
 
                 {(
                     <div className="lx-widget">
@@ -579,8 +579,8 @@ def:pub app() -> Any {
                             <div className="lx-follow-item" key={u["id"]}>
                                 <img className="lx-avatar-sm" src={"https://i.pravatar.cc/150?u=fake@" + u["username"]} alt={u["username"]} />
                                 <div className="lx-follow-item-info">
-                                    <div className="lx-follow-item-name">{u["username"].split("@")[0] if u["username"].includes("@") else u["username"]}</div>
-                                    <div className="lx-follow-item-handle">{"@" + (u["username"].split("@")[0] if u["username"].includes("@") else u["username"])}</div>
+                                    <div className="lx-follow-item-name">{u["username"].split("@")[0] if "@" in u["username"] else u["username"]}</div>
+                                    <div className="lx-follow-item-handle">{"@" + (u["username"].split("@")[0] if "@" in u["username"] else u["username"])}</div>
                                 </div>
                                 <button
                                     className="lx-follow-btn"
@@ -589,15 +589,15 @@ def:pub app() -> Any {
                                     Follow
                                 </button>
                             </div>
-                            for u in toFollow.slice(0, 5)
+                            for u in toFollow[:5]
                         ]}
                         {(
                             <div className="lx-widget-show-more" onClick={lambda -> None { activeTab = "explore"; }}>
                                 Show more
                             </div>
-                        ) if toFollow.length > 5 else None}
+                        ) if len(toFollow) > 5 else None}
                     </div>
-                ) if toFollow.length > 0 else None}
+                ) if len(toFollow) > 0 else None}
 
                 <div className="lx-about-widget">
                     <div className="lx-about-title">LITTLE-X</div>
@@ -632,11 +632,11 @@ def:pub app() -> Any {
             </div>
             <div
                 className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "profile" else "")}
-                onClick={lambda -> None { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
+                onClick={lambda -> None { activeTab = "profile"; localStorage.setItem("lx_activity_total", str(current_total_activity)); notifCount = 0; }}
             >
                 <User size={24} />
                 {(
-                    <span className="lx-nav-badge">{String(notifCount)}</span>
+                    <span className="lx-nav-badge">{str(notifCount)}</span>
                 ) if notifCount > 0 else None}
             </div>
         </nav>
