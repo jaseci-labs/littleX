@@ -1,2 +1,11 @@
 .jac_mypy_cache/
 .jac/
+.jac-ide/
+export-*.jacpack
+__jac_gen__/
+node_modules/
+dist/
+__pycache__/
+.env
+.jac-preview.log
+.jac-ide-bashrc
