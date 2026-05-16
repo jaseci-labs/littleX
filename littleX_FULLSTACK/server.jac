@@ -201,7 +201,7 @@ walker create_tweet {
             likes=[],
             comments=[]
         );
-        grant(tweet[0], level=ConnectPerm);
+        grant(tweet[0], level=WritePerm);
         t = tweet[0];
         report {"id": jid(t), "content": t.content, "author_username": t.author_username, "created_at": t.created_at, "likes": t.likes, "comments": t.comments};
     }
@@ -603,7 +603,7 @@ walker create_channel_tweet {
                     likes=[],
                     comments=[]
                 );
-                grant(tweet[0], level=ConnectPerm);
+                grant(tweet[0], level=WritePerm);
                 t = tweet[0];
                 report {
                     "id": jid(t),

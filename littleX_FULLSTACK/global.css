@@ -788,6 +788,28 @@ body::before {
   transform: translateY(-1px);
 }
 
+.lx-search-clear {
+  background: var(--lx-bg-raised);
+  color: var(--lx-text-muted);
+  border: 1px solid var(--lx-border);
+  border-radius: 10px;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.lx-search-clear:hover {
+  color: var(--lx-text);
+  border-color: var(--lx-accent-border);
+}
+
 /* ── Widget ── */
 
 .lx-widget {
