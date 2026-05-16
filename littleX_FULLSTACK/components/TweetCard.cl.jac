@@ -2,7 +2,7 @@
 
 import from "lucide-react" { Heart, MessageCircle, Trash2, Repeat2 }
 
-def:pub TweetCard(props: Any) -> Any {
+def:pub TweetCard(props: any) -> JsxElement {
     tweet = props.tweet;
     myUsername = props.myUsername;
     onLike = props.onLike;
@@ -53,21 +53,21 @@ def:pub TweetCard(props: Any) -> Any {
             <div className="lx-tweet-actions">
                 <button
                     className="lx-act-btn lx-act-comment"
-                    onClick={lambda -> None { showComments = not showComments; }}
+                    onClick={lambda { showComments = not showComments; }}
                 >
                     <MessageCircle size={16} />
                     <span>{comment_count}</span>
                 </button>
                 <button
                     className="lx-act-btn lx-act-repost"
-                    onClick={lambda -> None { repostFn.call(None, tweet["id"], tweet["content"], tweet["author_username"]); }}
+                    onClick={lambda { repostFn.call(None, tweet["id"], tweet["content"], tweet["author_username"]); }}
                     title="Repost"
                 >
                     <Repeat2 size={16} />
                 </button>
                 <button
                     className={"lx-act-btn lx-act-liked" if is_liked else "lx-act-btn lx-act-like"}
-                    onClick={lambda -> None { likeFn.call(None, tweet["id"]); }}
+                    onClick={lambda { likeFn.call(None, tweet["id"]); }}
                 >
                     <Heart size={16} />
                     <span>{like_count}</span>
@@ -75,7 +75,7 @@ def:pub TweetCard(props: Any) -> Any {
                 {(
                     <button
                         className="lx-act-btn lx-act-delete"
-                        onClick={lambda -> None { if confirm("Delete this post? This cannot be undone.") { deleteFn.call(None, tweet["id"]); } }}
+                        onClick={lambda { if confirm("Delete this post? This cannot be undone.") { deleteFn.call(None, tweet["id"]); } }}
                     >
                         <Trash2 size={16} />
                     </button>
@@ -100,8 +100,8 @@ def:pub TweetCard(props: Any) -> Any {
                             className="lx-comment-input"
                             placeholder="Reply..."
                             value={commentText}
-                            onChange={lambda e: Any -> None { commentText = e.target.value; }}
-                            onKeyDown={lambda e: Any -> None {
+                            onChange={lambda e: ChangeEvent { commentText = e.target.value; }}
+                            onKeyDown={lambda e: KeyboardEvent {
                                 if e.key == "Enter" and commentText.trim() {
                                     commentFn.call(None, tweet["id"], commentText);
                                     commentText = "";
@@ -110,7 +110,7 @@ def:pub TweetCard(props: Any) -> Any {
                         />
                         <button
                             className="lx-comment-submit"
-                            onClick={lambda -> None {
+                            onClick={lambda {
                                 if commentText.trim() {
                                     commentFn.call(None, tweet["id"], commentText);
                                     commentText = "";

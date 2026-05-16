@@ -2,12 +2,13 @@
 
 import from "@jac/runtime" { jacSignup, jacLogin, jacLogout, jacIsLoggedIn }
 sv import from .server { setup_profile, get_profile, get_all_profiles, follow_user, unfollow_user, create_tweet, delete_tweet, like_tweet, add_comment, load_feed, get_trending, create_channel, join_channel, leave_channel, get_channels, get_channel_detail, create_channel_tweet }
+sv import from .server { UserView, TweetView, ChannelView, TrendingTag }
 import from "lucide-react" { Home, Compass, User, LogOut, Search, Feather, Hash, Users, Plus, ArrowLeft, X }
 import from .components.TweetCard { TweetCard }
 import from .components.AuthForm { AuthForm }
 import "./global.css";
 
-def:pub app() -> Any {
+def:pub app -> JsxElement {
     has isLoggedIn: bool = False,
         checkingAuth: bool = True,
         isSignup: bool = False,
@@ -16,21 +17,21 @@ def:pub app() -> Any {
         authError: str = "",
         authLoading: bool = False,
         activeTab: str = "feed",
-        myProfile: Any = None,
-        tweets: list = [],
+        myProfile: any = None,
+        tweets: list[TweetView] = [],
         feedLoading: bool = True,
         composerText: str = "",
         searchQuery: str = "",
-        allProfiles: list = [],
+        allProfiles: list[UserView] = [],
         editingBio: bool = False,
         bioText: str = "",
-        trendingTags: list = [],
+        trendingTags: list[TrendingTag] = [],
         notifCount: int = 0,
         showWelcome: bool = False,
-        channels: list = [],
+        channels: list[ChannelView] = [],
         channelsLoading: bool = False,
-        selectedChannel: Any = None,
-        channelPosts: list = [],
+        selectedChannel: any = None,
+        channelPosts: list[TweetView] = [],
         channelComposerText: str = "",
         showCreateChannel: bool = False,
         newChannelName: str = "",
@@ -81,10 +82,10 @@ def:pub app() -> Any {
             password={authPassword}
             error={authError}
             loading={authLoading}
-            onUsernameChange={lambda e: Any -> None { authUsername = e.target.value; }}
-            onPasswordChange={lambda e: Any -> None { authPassword = e.target.value; }}
-            onSubmit={lambda e: Any -> None { e.preventDefault(); if isSignup { handleSignup(); } else { handleLogin(); } }}
-            onToggleMode={lambda -> None { isSignup = not isSignup; authError = ""; }}
+            onUsernameChange={lambda e: ChangeEvent { authUsername = e.target.value; }}
+            onPasswordChange={lambda e: ChangeEvent { authPassword = e.target.value; }}
+            onSubmit={lambda e: FormEvent { e.preventDefault(); if isSignup { handleSignup(); } else { handleLogin(); } }}
+            onToggleMode={lambda { isSignup = not isSignup; authError = ""; }}
         />;
     }
 
@@ -99,7 +100,7 @@ def:pub app() -> Any {
     ring_progress = Math.min(1.0, (280 - charsLeft) / 280.0);
     ring_offset = String(62.83 * (1.0 - ring_progress));
     ring_color = "#ef4444" if charsLeft < 0 else ("#f97316" if charsLeft < 50 else ("#fb923c" if charsLeft < 100 else "#2a2a35"));
-    toFollow = [u for u in allProfiles if not followingIds.includes(u["id"]) and u["id"] != (myProfile.id if myProfile else "")];
+    toFollow = [u for u in allProfiles if not followingIds.includes(u.id) and u.id != (myProfile.id if myProfile else "")];
     current_total_activity = (myProfile.tweets if myProfile and myProfile.tweets else []).reduce(lambda acc, t: acc + t["likes"].length + t["comments"].length, 0);
 
     return <div className="lx-root">
@@ -112,28 +113,28 @@ def:pub app() -> Any {
             <nav className="lx-nav">
                 <div
                     className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "feed" else "")}
-                    onClick={lambda -> None { activeTab = "feed"; if searchQuery { searchQuery = ""; handleSearch(""); } }}
+                    onClick={lambda { activeTab = "feed"; if searchQuery { searchQuery = ""; handleSearch(""); } }}
                 >
                     <Home size={22} />
                     <span>Home</span>
                 </div>
                 <div
                     className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "explore" else "")}
-                    onClick={lambda -> None { activeTab = "explore"; }}
+                    onClick={lambda { activeTab = "explore"; }}
                 >
                     <Compass size={22} />
                     <span>Explore</span>
                 </div>
                 <div
                     className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "channels" else "")}
-                    onClick={lambda -> None { activeTab = "channels"; loadChannels(); }}
+                    onClick={lambda { activeTab = "channels"; loadChannels(); }}
                 >
                     <Hash size={22} />
                     <span>Channels</span>
                 </div>
                 <div
                     className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "profile" else "")}
-                    onClick={lambda -> None { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
+                    onClick={lambda { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
                 >
                     <User size={22} />
                     <span>Profile</span>
@@ -143,7 +144,7 @@ def:pub app() -> Any {
                 </div>
             </nav>
 
-            <button className="lx-compose-btn" onClick={lambda -> None { activeTab = "feed"; }}>
+            <button className="lx-compose-btn" onClick={lambda { activeTab = "feed"; }}>
                 <Feather size={18} />
                 <span>Post</span>
             </button>
@@ -156,7 +157,7 @@ def:pub app() -> Any {
                     <div className="lx-sidebar-user-name">{displayUsername}</div>
                     <div className="lx-sidebar-user-handle">{"@" + displayUsername}</div>
                 </div>
-                <button className="lx-logout-icon-btn" onClick={lambda -> None { handleLogout(); }}>
+                <button className="lx-logout-icon-btn" onClick={lambda { handleLogout(); }}>
                     <LogOut size={18} />
                 </button>
             </div>
@@ -170,7 +171,7 @@ def:pub app() -> Any {
                 {(
                     <button
                         className="lx-edit-profile-btn"
-                        onClick={lambda -> None { editingBio = not editingBio; bioText = (myProfile.bio if myProfile and myProfile.bio else ""); }}
+                        onClick={lambda { editingBio = not editingBio; bioText = (myProfile.bio if myProfile and myProfile.bio else ""); }}
                     >
                         {"Cancel" if editingBio else "Edit profile"}
                     </button>
@@ -189,7 +190,7 @@ def:pub app() -> Any {
                                     <span className="lx-welcome-tip">{"Explore and follow people in Explore"}</span>
                                 </div>
                             </div>
-                            <button className="lx-welcome-dismiss" onClick={lambda -> None { handleDismissWelcome(); }}>
+                            <button className="lx-welcome-dismiss" onClick={lambda { handleDismissWelcome(); }}>
                                 {"Got it"}
                             </button>
                         </div>
@@ -201,7 +202,7 @@ def:pub app() -> Any {
                                 className="lx-composer-textarea"
                                 placeholder="What's happening?"
                                 value={composerText}
-                                onChange={lambda e: Any -> None { composerText = e.target.value; }}
+                                onChange={lambda e: ChangeEvent { composerText = e.target.value; }}
                                 rows={3}
                             />
                             <div className="lx-composer-footer">
@@ -227,7 +228,7 @@ def:pub app() -> Any {
                                 <button
                                     className="lx-post-btn"
                                     disabled={not composerText.trim() or charsLeft < 0}
-                                    onClick={lambda -> None { postTweet(); }}
+                                    onClick={lambda { postTweet(); }}
                                 >
                                     Post
                                 </button>
@@ -246,10 +247,10 @@ def:pub app() -> Any {
                                     <div className="lx-empty-title">Nothing here yet</div>
                                     <span>Follow people or post something!</span>
                                 </div>
-                            ) if tweets.length == 0 else None}
+                            ) if len(tweets) == 0 else None}
                             {[
                                 <TweetCard
-                                    key={tweet["id"]}
+                                    key={tweet.id}
                                     tweet={tweet}
                                     myUsername={profileUsername}
                                     onLike={handleLike}
@@ -269,28 +270,28 @@ def:pub app() -> Any {
                         <div className="lx-loading">Loading users...</div>
                     ) if not allProfiles else None}
                     {[
-                        <div className="lx-explore-item" key={u["id"]}>
-                            <img className="lx-avatar" src={"https://i.pravatar.cc/150?u=fake@" + u["username"]} alt={u["username"]} />
+                        <div className="lx-explore-item" key={u.id}>
+                            <img className="lx-avatar" src={"https://i.pravatar.cc/150?u=fake@" + u.username} alt={u.username} />
                             <div className="lx-explore-info">
-                                <div className="lx-explore-name">{u["username"].split("@")[0] if u["username"].includes("@") else u["username"]}</div>
-                                <div className="lx-explore-handle">{"@" + (u["username"].split("@")[0] if u["username"].includes("@") else u["username"])}</div>
-                                <div className="lx-explore-bio">{u["bio"] if u["bio"] else "No bio yet"}</div>
+                                <div className="lx-explore-name">{u.username.split("@")[0] if "@" in u.username else u.username}</div>
+                                <div className="lx-explore-handle">{"@" + (u.username.split("@")[0] if "@" in u.username else u.username)}</div>
+                                <div className="lx-explore-bio">{u.bio if u.bio else "No bio yet"}</div>
                             </div>
                             {(
                                 <button
                                     className="lx-unfollow-btn"
-                                    onClick={lambda -> None { handleUnfollow(u["id"]); }}
+                                    onClick={lambda { handleUnfollow(u.id); }}
                                 >
                                     Following
                                 </button>
-                            ) if followingIds.includes(u["id"]) else (
+                            ) if followingIds.includes(u.id) else (
                                 <button
                                     className="lx-follow-btn"
-                                    onClick={lambda -> None { handleFollow(u["id"]); }}
+                                    onClick={lambda { handleFollow(u.id); }}
                                 >
                                     Follow
                                 </button>
-                            ) if u["id"] != (myProfile.id if myProfile else "") else None}
+                            ) if u.id != (myProfile.id if myProfile else "") else None}
                         </div>
                         for u in allProfiles
                     ]}
@@ -304,7 +305,7 @@ def:pub app() -> Any {
                             <div className="lx-channel-actions">
                                 <button
                                     className="lx-post-btn"
-                                    onClick={lambda -> None { showCreateChannel = not showCreateChannel; }}
+                                    onClick={lambda { showCreateChannel = not showCreateChannel; }}
                                 >
                                     <Plus size={16} />
                                     {"Create Channel"}
@@ -317,25 +318,25 @@ def:pub app() -> Any {
                                         className="lx-input"
                                         placeholder="Channel name"
                                         value={newChannelName}
-                                        onChange={lambda e: Any -> None { newChannelName = e.target.value; }}
+                                        onChange={lambda e: ChangeEvent { newChannelName = e.target.value; }}
                                     />
                                     <input
                                         className="lx-input"
                                         placeholder="Description (optional)"
                                         value={newChannelDescription}
-                                        onChange={lambda e: Any -> None { newChannelDescription = e.target.value; }}
+                                        onChange={lambda e: ChangeEvent { newChannelDescription = e.target.value; }}
                                     />
                                     <div style={{"display": "flex", "gap": "0.5rem"}}>
                                         <button
                                             className="lx-post-btn"
                                             disabled={not newChannelName.trim()}
-                                            onClick={lambda -> None { handleCreateChannel(); }}
+                                            onClick={lambda { handleCreateChannel(); }}
                                         >
                                             Create
                                         </button>
                                         <button
                                             className="lx-edit-profile-btn"
-                                            onClick={lambda -> None { showCreateChannel = False; newChannelName = ""; newChannelDescription = ""; }}
+                                            onClick={lambda { showCreateChannel = False; newChannelName = ""; newChannelDescription = ""; }}
                                         >
                                             Cancel
                                         </button>
@@ -354,29 +355,29 @@ def:pub app() -> Any {
                                             <div className="lx-empty-title">No channels yet</div>
                                             <span>Create one to get started!</span>
                                         </div>
-                                    ) if channels.length == 0 else None}
+                                    ) if len(channels) == 0 else None}
                                     {[
                                         <div
                                             className="lx-channel-item"
-                                            key={ch["id"]}
-                                            onClick={lambda -> None { handleSelectChannel(ch["id"]); }}
+                                            key={ch.id}
+                                            onClick={lambda { handleSelectChannel(ch.id); }}
                                         >
                                             <div className="lx-channel-icon">
                                                 <Hash size={20} />
                                             </div>
                                             <div className="lx-channel-item-info">
-                                                <div className="lx-channel-item-name">{ch["name"]}</div>
+                                                <div className="lx-channel-item-name">{ch.name}</div>
                                                 {(
-                                                    <div className="lx-channel-item-desc">{ch["description"]}</div>
-                                                ) if ch["description"] else None}
+                                                    <div className="lx-channel-item-desc">{ch.description}</div>
+                                                ) if ch.description else None}
                                                 <div className="lx-channel-item-meta">
                                                     <Users size={12} />
-                                                    <span>{String(ch["member_count"]) + (" member" if ch["member_count"] == 1 else " members")}</span>
+                                                    <span>{String(ch.member_count) + (" member" if ch.member_count == 1 else " members")}</span>
                                                 </div>
                                             </div>
                                             {(
                                                 <span className="lx-channel-joined-badge">Joined</span>
-                                            ) if ch["is_member"] else None}
+                                            ) if ch.is_member else None}
                                         </div>
                                         for ch in channels
                                     ]}
@@ -388,7 +389,7 @@ def:pub app() -> Any {
                             <div className="lx-channel-header">
                                 <button
                                     className="lx-edit-profile-btn"
-                                    onClick={lambda -> None { handleBackToChannels(); }}
+                                    onClick={lambda { handleBackToChannels(); }}
                                     style={{"display": "flex", "alignItems": "center", "gap": "0.3rem"}}
                                 >
                                     <ArrowLeft size={16} />
@@ -407,14 +408,14 @@ def:pub app() -> Any {
                                     {(
                                         <button
                                             className="lx-edit-profile-btn"
-                                            onClick={lambda -> None { handleLeaveChannel(selectedChannel.id); }}
+                                            onClick={lambda { handleLeaveChannel(selectedChannel.id); }}
                                         >
                                             Leave
                                         </button>
                                     ) if selectedChannel.is_member else (
                                         <button
                                             className="lx-follow-btn"
-                                            onClick={lambda -> None { handleJoinChannel(selectedChannel.id); }}
+                                            onClick={lambda { handleJoinChannel(selectedChannel.id); }}
                                         >
                                             Join
                                         </button>
@@ -430,7 +431,7 @@ def:pub app() -> Any {
                                             className="lx-composer-textarea"
                                             placeholder={"Post in #" + selectedChannel.name}
                                             value={channelComposerText}
-                                            onChange={lambda e: Any -> None { channelComposerText = e.target.value; }}
+                                            onChange={lambda e: ChangeEvent { channelComposerText = e.target.value; }}
                                             rows={2}
                                         />
                                         <div className="lx-composer-footer">
@@ -438,7 +439,7 @@ def:pub app() -> Any {
                                             <button
                                                 className="lx-post-btn"
                                                 disabled={not channelComposerText.trim()}
-                                                onClick={lambda -> None { handleChannelPost(); }}
+                                                onClick={lambda { handleChannelPost(); }}
                                             >
                                                 Post
                                             </button>
@@ -452,11 +453,11 @@ def:pub app() -> Any {
                                     <div className="lx-empty-title">No posts yet</div>
                                     <span>{("Be the first to post!" if selectedChannel.is_member else "Join this channel to post!")}</span>
                                 </div>
-                            ) if channelPosts.length == 0 else None}
+                            ) if len(channelPosts) == 0 else None}
 
                             {[
                                 <TweetCard
-                                    key={tweet["id"]}
+                                    key={tweet.id}
                                     tweet={tweet}
                                     myUsername={profileUsername}
                                     onLike={handleLike}
@@ -491,15 +492,15 @@ def:pub app() -> Any {
                                     rows={3}
                                     placeholder="Write your bio..."
                                     value={bioText}
-                                    onChange={lambda e: Any -> None { bioText = e.target.value; }}
+                                    onChange={lambda e: ChangeEvent { bioText = e.target.value; }}
                                 />
                                 <div style={{"display": "flex", "gap": "0.5rem"}}>
-                                    <button className="lx-bio-save-btn" onClick={lambda -> None { handleSaveBio(); }}>
+                                    <button className="lx-bio-save-btn" onClick={lambda { handleSaveBio(); }}>
                                         Save
                                     </button>
                                     <button
                                         className="lx-edit-profile-btn"
-                                        onClick={lambda -> None { editingBio = False; }}
+                                        onClick={lambda { editingBio = False; }}
                                     >
                                         Cancel
                                     </button>
@@ -547,21 +548,21 @@ def:pub app() -> Any {
                         className="lx-search-input"
                         placeholder="Search Little-X"
                         value={searchQuery}
-                        onChange={lambda e: Any -> None { searchQuery = e.target.value; }}
-                        onKeyDown={lambda e: Any -> None { if e.key == "Enter" { handleSearch(e.target.value); } }}
+                        onChange={lambda e: ChangeEvent { searchQuery = e.target.value; }}
+                        onKeyDown={lambda e: KeyboardEvent { if e.key == "Enter" { handleSearch(e.target.value); } }}
                     />
                     {(
                         <button
                             className="lx-search-clear"
                             title="Clear search"
-                            onClick={lambda -> None { searchQuery = ""; handleSearch(""); }}
+                            onClick={lambda { searchQuery = ""; handleSearch(""); }}
                         >
                             <X size={16} />
                         </button>
                     ) if searchQuery else None}
                     <button
                         className="lx-search-btn"
-                        onClick={lambda -> None { handleSearch(searchQuery); }}
+                        onClick={lambda { handleSearch(searchQuery); }}
                     >
                         Search
                     </button>
@@ -573,43 +574,43 @@ def:pub app() -> Any {
                         {[
                             <div
                                 className="lx-trend-item"
-                                key={t["tag"]}
-                                onClick={lambda -> None { searchQuery = t["tag"]; handleSearch(t["tag"]); activeTab = "feed"; }}
+                                key={t.tag}
+                                onClick={lambda { searchQuery = t.tag; handleSearch(t.tag); activeTab = "feed"; }}
                             >
-                                <span className="lx-trend-tag">{t["tag"]}</span>
-                                <span className="lx-trend-count">{String(t["count"]) + (" post" if t["count"] == 1 else " posts")}</span>
+                                <span className="lx-trend-tag">{t.tag}</span>
+                                <span className="lx-trend-count">{String(t.count) + (" post" if t.count == 1 else " posts")}</span>
                             </div>
                             for t in trendingTags
                         ]}
                     </div>
-                ) if trendingTags.length > 0 else None}
+                ) if len(trendingTags) > 0 else None}
 
                 {(
                     <div className="lx-widget">
                         <div className="lx-widget-title">Who to follow</div>
                         {[
-                            <div className="lx-follow-item" key={u["id"]}>
-                                <img className="lx-avatar-sm" src={"https://i.pravatar.cc/150?u=fake@" + u["username"]} alt={u["username"]} />
+                            <div className="lx-follow-item" key={u.id}>
+                                <img className="lx-avatar-sm" src={"https://i.pravatar.cc/150?u=fake@" + u.username} alt={u.username} />
                                 <div className="lx-follow-item-info">
-                                    <div className="lx-follow-item-name">{u["username"].split("@")[0] if u["username"].includes("@") else u["username"]}</div>
-                                    <div className="lx-follow-item-handle">{"@" + (u["username"].split("@")[0] if u["username"].includes("@") else u["username"])}</div>
+                                    <div className="lx-follow-item-name">{u.username.split("@")[0] if "@" in u.username else u.username}</div>
+                                    <div className="lx-follow-item-handle">{"@" + (u.username.split("@")[0] if "@" in u.username else u.username)}</div>
                                 </div>
                                 <button
                                     className="lx-follow-btn"
-                                    onClick={lambda -> None { handleFollow(u["id"]); }}
+                                    onClick={lambda { handleFollow(u.id); }}
                                 >
                                     Follow
                                 </button>
                             </div>
-                            for u in toFollow.slice(0, 5)
+                            for u in toFollow[:5]
                         ]}
                         {(
-                            <div className="lx-widget-show-more" onClick={lambda -> None { activeTab = "explore"; }}>
+                            <div className="lx-widget-show-more" onClick={lambda { activeTab = "explore"; }}>
                                 Show more
                             </div>
-                        ) if toFollow.length > 5 else None}
+                        ) if len(toFollow) > 5 else None}
                     </div>
-                ) if toFollow.length > 0 else None}
+                ) if len(toFollow) > 0 else None}
 
                 <div className="lx-about-widget">
                     <div className="lx-about-title">LITTLE-X</div>
@@ -626,25 +627,25 @@ def:pub app() -> Any {
         <nav className="lx-mobile-nav">
             <div
                 className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "feed" else "")}
-                onClick={lambda -> None { activeTab = "feed"; if searchQuery { searchQuery = ""; handleSearch(""); } }}
+                onClick={lambda { activeTab = "feed"; if searchQuery { searchQuery = ""; handleSearch(""); } }}
             >
                 <Home size={24} />
             </div>
             <div
                 className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "explore" else "")}
-                onClick={lambda -> None { activeTab = "explore"; }}
+                onClick={lambda { activeTab = "explore"; }}
             >
                 <Compass size={24} />
             </div>
             <div
                 className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "channels" else "")}
-                onClick={lambda -> None { activeTab = "channels"; loadChannels(); }}
+                onClick={lambda { activeTab = "channels"; loadChannels(); }}
             >
                 <Hash size={24} />
             </div>
             <div
                 className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "profile" else "")}
-                onClick={lambda -> None { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
+                onClick={lambda { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
             >
                 <User size={24} />
                 {(
@@ -653,7 +654,7 @@ def:pub app() -> Any {
             </div>
         </nav>
 
-        <button className="lx-mobile-fab" onClick={lambda -> None { activeTab = "feed"; }}>
+        <button className="lx-mobile-fab" onClick={lambda { activeTab = "feed"; }}>
             <Feather size={22} />
         </button>
     </div>;
