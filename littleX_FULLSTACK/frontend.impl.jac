@@ -17,15 +17,15 @@ impl app.loadData -> None {
     trendResult = root spawn get_trending();
     trendingTags = trendResult.reports[0] if trendResult.reports else [];
 
-    total_activity = (myProfile.tweets if myProfile and myProfile.tweets else []).reduce(lambda acc, t: acc + t["likes"].length + t["comments"].length, 0);
+    total_activity = sum([len(t["likes"]) + len(t["comments"]) for t in (myProfile.tweets if myProfile and myProfile.tweets else [])]);
     last_seen_str = localStorage.getItem("lx_activity_total");
-    last_seen = parseInt(last_seen_str) if last_seen_str else 0;
+    last_seen = int(last_seen_str) if last_seen_str else 0;
     notifCount = total_activity - last_seen if total_activity > last_seen else 0;
 }
 
 impl app.handleLogin -> None {
     authError = "";
-    if not authUsername.trim() or not authPassword {
+    if not authUsername.strip() or not authPassword {
         authError = "Please fill in all fields";
         return;
     }
@@ -44,11 +44,11 @@ impl app.handleLogin -> None {
 
 impl app.handleSignup -> None {
     authError = "";
-    if not authUsername.trim() or not authPassword {
+    if not authUsername.strip() or not authPassword {
         authError = "Please fill in all fields";
         return;
     }
-    if authPassword.length < 4 {
+    if len(authPassword) < 4 {
         authError = "Password must be at least 4 characters";
         return;
     }
@@ -87,7 +87,7 @@ impl app.handleLogout -> None {
 }
 
 impl app.postTweet -> None {
-    if not composerText.trim() {
+    if not composerText.strip() {
         return;
     }
     text = composerText;
@@ -176,7 +176,7 @@ impl app.handleSearch(query: str) -> None {
 }
 
 impl app.handleRepost(tweetId: str, content: str, author: str) -> None {
-    display_author = author.split("@")[0] if author.includes("@") else author;
+    display_author = author.split("@")[0] if "@" in author else author;
     composerText = "RT @" + display_author + ": " + content;
     activeTab = "feed";
 }
@@ -194,10 +194,10 @@ impl app.loadChannels -> None {
 }
 
 impl app.handleCreateChannel -> None {
-    if not newChannelName.trim() {
+    if not newChannelName.strip() {
         return;
     }
-    root spawn create_channel(name=newChannelName.trim(), description=newChannelDescription.trim());
+    root spawn create_channel(name=newChannelName.strip(), description=newChannelDescription.strip());
     newChannelName = "";
     newChannelDescription = "";
     showCreateChannel = False;
@@ -243,7 +243,7 @@ impl app.handleSelectChannel(channelId: str) -> None {
 }
 
 impl app.handleChannelPost -> None {
-    if not channelComposerText.trim() or not selectedChannel {
+    if not channelComposerText.strip() or not selectedChannel {
         return;
     }
     text = channelComposerText;

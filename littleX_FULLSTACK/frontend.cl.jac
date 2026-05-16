@@ -90,18 +90,18 @@ def:pub app -> JsxElement {
     }
 
     profileUsername = myProfile.username if myProfile else "";
-    displayUsername = profileUsername.split("@")[0] if profileUsername.includes("@") else profileUsername;
+    displayUsername = profileUsername.split("@")[0] if "@" in profileUsername else profileUsername;
     profileAvatar = "https://i.pravatar.cc/150?u=fake@" + profileUsername;
     followingIds = [f["id"] for f in myProfile.following] if myProfile and myProfile.following else [];
     followingCount = len(myProfile.following) if myProfile and myProfile.following else 0;
     followerCount = len(myProfile.followers) if myProfile and myProfile.followers else 0;
     postCount = len(myProfile.tweets) if myProfile and myProfile.tweets else 0;
-    charsLeft = 280 - composerText.length;
-    ring_progress = Math.min(1.0, (280 - charsLeft) / 280.0);
-    ring_offset = String(62.83 * (1.0 - ring_progress));
+    charsLeft = 280 - len(composerText);
+    ring_progress = min(1.0, (280 - charsLeft) / 280.0);
+    ring_offset = str(62.83 * (1.0 - ring_progress));
     ring_color = "#ef4444" if charsLeft < 0 else ("#f97316" if charsLeft < 50 else ("#fb923c" if charsLeft < 100 else "#2a2a35"));
-    toFollow = [u for u in allProfiles if not followingIds.includes(u.id) and u.id != (myProfile.id if myProfile else "")];
-    current_total_activity = (myProfile.tweets if myProfile and myProfile.tweets else []).reduce(lambda acc, t: acc + t["likes"].length + t["comments"].length, 0);
+    toFollow = [u for u in allProfiles if u.id not in followingIds and u.id != (myProfile.id if myProfile else "")];
+    current_total_activity = sum([len(t["likes"]) + len(t["comments"]) for t in (myProfile.tweets if myProfile and myProfile.tweets else [])]);
 
     return <div className="lx-root">
         <aside className="lx-sidebar-left">
@@ -134,12 +134,12 @@ def:pub app -> JsxElement {
                 </div>
                 <div
                     className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "profile" else "")}
-                    onClick={lambda { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
+                    onClick={lambda { activeTab = "profile"; localStorage.setItem("lx_activity_total", str(current_total_activity)); notifCount = 0; }}
                 >
                     <User size={22} />
                     <span>Profile</span>
                     {(
-                        <span className="lx-nav-badge">{String(notifCount)}</span>
+                        <span className="lx-nav-badge">{str(notifCount)}</span>
                     ) if notifCount > 0 else None}
                 </div>
             </nav>
@@ -221,13 +221,13 @@ def:pub app -> JsxElement {
                                     </svg>
                                     {(
                                         <span className={"lx-char-count-over" if charsLeft < 0 else "lx-char-count-warn"}>
-                                            {String(charsLeft)}
+                                            {str(charsLeft)}
                                         </span>
                                     ) if charsLeft <= 20 else None}
                                 </div>
                                 <button
                                     className="lx-post-btn"
-                                    disabled={not composerText.trim() or charsLeft < 0}
+                                    disabled={not composerText.strip() or charsLeft < 0}
                                     onClick={lambda { postTweet(); }}
                                 >
                                     Post
@@ -284,7 +284,7 @@ def:pub app -> JsxElement {
                                 >
                                     Following
                                 </button>
-                            ) if followingIds.includes(u.id) else (
+                            ) if u.id in followingIds else (
                                 <button
                                     className="lx-follow-btn"
                                     onClick={lambda { handleFollow(u.id); }}
@@ -329,7 +329,7 @@ def:pub app -> JsxElement {
                                     <div style={{"display": "flex", "gap": "0.5rem"}}>
                                         <button
                                             className="lx-post-btn"
-                                            disabled={not newChannelName.trim()}
+                                            disabled={not newChannelName.strip()}
                                             onClick={lambda { handleCreateChannel(); }}
                                         >
                                             Create
@@ -372,7 +372,7 @@ def:pub app -> JsxElement {
                                                 ) if ch.description else None}
                                                 <div className="lx-channel-item-meta">
                                                     <Users size={12} />
-                                                    <span>{String(ch.member_count) + (" member" if ch.member_count == 1 else " members")}</span>
+                                                    <span>{str(ch.member_count) + (" member" if ch.member_count == 1 else " members")}</span>
                                                 </div>
                                             </div>
                                             {(
@@ -404,7 +404,7 @@ def:pub app -> JsxElement {
                                 ) if selectedChannel.description else None}
                                 <div className="lx-channel-meta">
                                     <Users size={14} />
-                                    <span>{String(selectedChannel.member_count) + (" member" if selectedChannel.member_count == 1 else " members")}</span>
+                                    <span>{str(selectedChannel.member_count) + (" member" if selectedChannel.member_count == 1 else " members")}</span>
                                     {(
                                         <button
                                             className="lx-edit-profile-btn"
@@ -438,7 +438,7 @@ def:pub app -> JsxElement {
                                             <div />
                                             <button
                                                 className="lx-post-btn"
-                                                disabled={not channelComposerText.trim()}
+                                                disabled={not channelComposerText.strip()}
                                                 onClick={lambda { handleChannelPost(); }}
                                             >
                                                 Post
@@ -509,15 +509,15 @@ def:pub app -> JsxElement {
                         ) if editingBio else None}
                         <div className="lx-profile-stats">
                             <div className="lx-profile-stat">
-                                <strong>{String(followingCount)}</strong>
+                                <strong>{str(followingCount)}</strong>
                                 Following
                             </div>
                             <div className="lx-profile-stat">
-                                <strong>{String(followerCount)}</strong>
+                                <strong>{str(followerCount)}</strong>
                                 {("Follower" if followerCount == 1 else "Followers")}
                             </div>
                             <div className="lx-profile-stat">
-                                <strong>{String(postCount)}</strong>
+                                <strong>{str(postCount)}</strong>
                                 {("Post" if postCount == 1 else "Posts")}
                             </div>
                         </div>
@@ -578,7 +578,7 @@ def:pub app -> JsxElement {
                                 onClick={lambda { searchQuery = t.tag; handleSearch(t.tag); activeTab = "feed"; }}
                             >
                                 <span className="lx-trend-tag">{t.tag}</span>
-                                <span className="lx-trend-count">{String(t.count) + (" post" if t.count == 1 else " posts")}</span>
+                                <span className="lx-trend-count">{str(t.count) + (" post" if t.count == 1 else " posts")}</span>
                             </div>
                             for t in trendingTags
                         ]}
@@ -645,11 +645,11 @@ def:pub app -> JsxElement {
             </div>
             <div
                 className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "profile" else "")}
-                onClick={lambda { activeTab = "profile"; localStorage.setItem("lx_activity_total", String(current_total_activity)); notifCount = 0; }}
+                onClick={lambda { activeTab = "profile"; localStorage.setItem("lx_activity_total", str(current_total_activity)); notifCount = 0; }}
             >
                 <User size={24} />
                 {(
-                    <span className="lx-nav-badge">{String(notifCount)}</span>
+                    <span className="lx-nav-badge">{str(notifCount)}</span>
                 ) if notifCount > 0 else None}
             </div>
         </nav>
