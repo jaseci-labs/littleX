@@ -1,6 +1,6 @@
 """Authentication form component for Little X."""
 
-def:pub AuthForm(props: Any) -> Any {
+def:pub AuthForm(props: any) -> JsxElement {
     isSignup = props.isSignup;
     username = props.username;
     password = props.password;
