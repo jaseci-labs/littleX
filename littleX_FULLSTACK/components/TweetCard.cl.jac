@@ -75,7 +75,7 @@ def:pub TweetCard(props: Any) -> Any {
                 {(
                     <button
                         className="lx-act-btn lx-act-delete"
-                        onClick={lambda -> None { deleteFn.call(None, tweet["id"]); }}
+                        onClick={lambda -> None { if confirm("Delete this post? This cannot be undone.") { deleteFn.call(None, tweet["id"]); } }}
                     >
                         <Trash2 size={16} />
                     </button>
@@ -89,7 +89,6 @@ def:pub TweetCard(props: Any) -> Any {
                             <div>
                                 <div className="lx-comment-meta">
                                     <strong>{c["username"]}</strong>
-                                    <span>{" · "}</span>
                                 </div>
                                 <div className="lx-comment-text">{c["content"]}</div>
                             </div>

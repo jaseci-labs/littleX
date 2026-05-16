@@ -54,13 +54,22 @@ impl app.handleSignup -> None {
     }
     authLoading = True;
     result = await jacSignup(authUsername, authPassword);
-    authLoading = False;
     if result["ok"] or result["success"] {
-        localStorage.setItem("lx_username", authUsername);
-        isLoggedIn = True;
-        authPassword = "";
-        authError = "";
+        # jacSignup only registers the account; establish a session by
+        # logging in so the first walker calls aren't rejected with 401.
+        loginResult = await jacLogin(authUsername, authPassword);
+        authLoading = False;
+        if loginResult and (loginResult["ok"] or loginResult == True) {
+            localStorage.setItem("lx_username", authUsername);
+            isLoggedIn = True;
+            authPassword = "";
+            authError = "";
+        } else {
+            isSignup = False;
+            authError = "Account created. Please log in.";
+        }
     } else {
+        authLoading = False;
         authError = (result["error"]["message"] if result["error"] and result["error"]["message"] else (result["error"] if result["error"] else "Signup failed"));
     }
 }
@@ -88,6 +97,8 @@ impl app.postTweet -> None {
     tweets = feedResult.reports[0] if feedResult.reports else [];
     profileResult = root spawn get_profile();
     myProfile = profileResult.reports[0] if profileResult.reports else myProfile;
+    trendResult = root spawn get_trending();
+    trendingTags = trendResult.reports[0] if trendResult.reports else [];
 }
 
 impl app.handleLike(tweetId: str) -> None {

@@ -2,7 +2,7 @@
 
 import from "@jac/runtime" { jacSignup, jacLogin, jacLogout, jacIsLoggedIn }
 sv import from .server { setup_profile, get_profile, get_all_profiles, follow_user, unfollow_user, create_tweet, delete_tweet, like_tweet, add_comment, load_feed, get_trending, create_channel, join_channel, leave_channel, get_channels, get_channel_detail, create_channel_tweet }
-import from "lucide-react" { Home, Compass, User, LogOut, Search, Feather, Hash, Users, Plus, ArrowLeft }
+import from "lucide-react" { Home, Compass, User, LogOut, Search, Feather, Hash, Users, Plus, ArrowLeft, X }
 import from .components.TweetCard { TweetCard }
 import from .components.AuthForm { AuthForm }
 import "./global.css";
@@ -92,6 +92,9 @@ def:pub app() -> Any {
     displayUsername = profileUsername.split("@")[0] if profileUsername.includes("@") else profileUsername;
     profileAvatar = "https://i.pravatar.cc/150?u=fake@" + profileUsername;
     followingIds = [f["id"] for f in myProfile.following] if myProfile and myProfile.following else [];
+    followingCount = len(myProfile.following) if myProfile and myProfile.following else 0;
+    followerCount = len(myProfile.followers) if myProfile and myProfile.followers else 0;
+    postCount = len(myProfile.tweets) if myProfile and myProfile.tweets else 0;
     charsLeft = 280 - composerText.length;
     ring_progress = Math.min(1.0, (280 - charsLeft) / 280.0);
     ring_offset = String(62.83 * (1.0 - ring_progress));
@@ -109,7 +112,7 @@ def:pub app() -> Any {
             <nav className="lx-nav">
                 <div
                     className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "feed" else "")}
-                    onClick={lambda -> None { activeTab = "feed"; }}
+                    onClick={lambda -> None { activeTab = "feed"; if searchQuery { searchQuery = ""; handleSearch(""); } }}
                 >
                     <Home size={22} />
                     <span>Home</span>
@@ -368,7 +371,7 @@ def:pub app() -> Any {
                                                 ) if ch["description"] else None}
                                                 <div className="lx-channel-item-meta">
                                                     <Users size={12} />
-                                                    <span>{String(ch["member_count"]) + " members"}</span>
+                                                    <span>{String(ch["member_count"]) + (" member" if ch["member_count"] == 1 else " members")}</span>
                                                 </div>
                                             </div>
                                             {(
@@ -400,7 +403,7 @@ def:pub app() -> Any {
                                 ) if selectedChannel.description else None}
                                 <div className="lx-channel-meta">
                                     <Users size={14} />
-                                    <span>{String(selectedChannel.member_count) + " members"}</span>
+                                    <span>{String(selectedChannel.member_count) + (" member" if selectedChannel.member_count == 1 else " members")}</span>
                                     {(
                                         <button
                                             className="lx-edit-profile-btn"
@@ -505,16 +508,16 @@ def:pub app() -> Any {
                         ) if editingBio else None}
                         <div className="lx-profile-stats">
                             <div className="lx-profile-stat">
-                                <strong>{String(len(myProfile.following) if myProfile and myProfile.following else 0)}</strong>
+                                <strong>{String(followingCount)}</strong>
                                 Following
                             </div>
                             <div className="lx-profile-stat">
-                                <strong>{String(len(myProfile.followers) if myProfile and myProfile.followers else 0)}</strong>
-                                Followers
+                                <strong>{String(followerCount)}</strong>
+                                {("Follower" if followerCount == 1 else "Followers")}
                             </div>
                             <div className="lx-profile-stat">
-                                <strong>{String(len(myProfile.tweets) if myProfile and myProfile.tweets else 0)}</strong>
-                                Posts
+                                <strong>{String(postCount)}</strong>
+                                {("Post" if postCount == 1 else "Posts")}
                             </div>
                         </div>
                     </div>
@@ -547,6 +550,15 @@ def:pub app() -> Any {
                         onChange={lambda e: Any -> None { searchQuery = e.target.value; }}
                         onKeyDown={lambda e: Any -> None { if e.key == "Enter" { handleSearch(e.target.value); } }}
                     />
+                    {(
+                        <button
+                            className="lx-search-clear"
+                            title="Clear search"
+                            onClick={lambda -> None { searchQuery = ""; handleSearch(""); }}
+                        >
+                            <X size={16} />
+                        </button>
+                    ) if searchQuery else None}
                     <button
                         className="lx-search-btn"
                         onClick={lambda -> None { handleSearch(searchQuery); }}
@@ -565,7 +577,7 @@ def:pub app() -> Any {
                                 onClick={lambda -> None { searchQuery = t["tag"]; handleSearch(t["tag"]); activeTab = "feed"; }}
                             >
                                 <span className="lx-trend-tag">{t["tag"]}</span>
-                                <span className="lx-trend-count">{String(t["count"]) + " posts"}</span>
+                                <span className="lx-trend-count">{String(t["count"]) + (" post" if t["count"] == 1 else " posts")}</span>
                             </div>
                             for t in trendingTags
                         ]}
@@ -614,7 +626,7 @@ def:pub app() -> Any {
         <nav className="lx-mobile-nav">
             <div
                 className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "feed" else "")}
-                onClick={lambda -> None { activeTab = "feed"; }}
+                onClick={lambda -> None { activeTab = "feed"; if searchQuery { searchQuery = ""; handleSearch(""); } }}
             >
                 <Home size={24} />
             </div>
