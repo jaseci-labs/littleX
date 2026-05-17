@@ -1,7 +1,9 @@
 """Little X - Frontend function implementations."""
 
 impl app.loadData -> None {
-    result = root spawn setup_profile(username=localStorage.getItem("lx_username") or "");
+    result = root spawn setup_profile(
+        username=localStorage.getItem("lx_username") or ""
+    );
     myProfile = result.reports[0] if result.reports else None;
 
     feedResult = root spawn load_feed(search_query="");
@@ -17,7 +19,12 @@ impl app.loadData -> None {
     trendResult = root spawn get_trending();
     trendingTags = trendResult.reports[0] if trendResult.reports else [];
 
-    total_activity = sum([len(t["likes"]) + len(t["comments"]) for t in (myProfile.tweets if myProfile and myProfile.tweets else [])]);
+    total_activity = sum(
+        [
+            len(t.likes) + len(t.comments)
+            for t in (myProfile.tweets if myProfile and myProfile.tweets else [])
+        ]
+    );
     last_seen_str = localStorage.getItem("lx_activity_total");
     last_seen = int(last_seen_str) if last_seen_str else 0;
     notifCount = total_activity - last_seen if total_activity > last_seen else 0;
@@ -30,7 +37,7 @@ impl app.handleLogin -> None {
         return;
     }
     authLoading = True;
-    result = await jacLogin(authUsername, authPassword);
+    result: any = await jacLogin(authUsername, authPassword);
     authLoading = False;
     if result and (result["ok"] or result == True) {
         localStorage.setItem("lx_username", authUsername);
@@ -38,7 +45,11 @@ impl app.handleLogin -> None {
         authPassword = "";
         authError = "";
     } else {
-        authError = (result["error"]["message"] if result and result["error"] and result["error"]["message"] else "Invalid username or password");
+        authError = str(
+            result["error"]["message"]
+                if result and result["error"] and result["error"]["message"]
+                else "Invalid username or password"
+        );
     }
 }
 
@@ -53,11 +64,11 @@ impl app.handleSignup -> None {
         return;
     }
     authLoading = True;
-    result = await jacSignup(authUsername, authPassword);
+    result: any = await jacSignup(authUsername, authPassword);
     if result["ok"] or result["success"] {
         # jacSignup only registers the account; establish a session by
         # logging in so the first walker calls aren't rejected with 401.
-        loginResult = await jacLogin(authUsername, authPassword);
+        loginResult: any = await jacLogin(authUsername, authPassword);
         authLoading = False;
         if loginResult and (loginResult["ok"] or loginResult == True) {
             localStorage.setItem("lx_username", authUsername);
@@ -70,7 +81,11 @@ impl app.handleSignup -> None {
         }
     } else {
         authLoading = False;
-        authError = (result["error"]["message"] if result["error"] and result["error"]["message"] else (result["error"] if result["error"] else "Signup failed"));
+        authError = str(
+            result["error"]["message"]
+                if result["error"] and result["error"]["message"]
+                else (result["error"] if result["error"] else "Signup failed")
+        );
     }
 }
 
@@ -112,9 +127,9 @@ impl app.handleLike(tweetId: str) -> None {
     if selectedChannel {
         detailResult = root spawn get_channel_detail(channel_id=selectedChannel.id);
         detail = detailResult.reports[0] if detailResult.reports else None;
-        if detail and not detail["error"] {
+        if detail {
             selectedChannel = detail;
-            channelPosts = detail["posts"] if detail["posts"] else [];
+            channelPosts = detail.posts if detail.posts else [];
         }
     }
 }
@@ -126,9 +141,9 @@ impl app.handleComment(tweetId: str, content: str) -> None {
     if selectedChannel {
         detailResult = root spawn get_channel_detail(channel_id=selectedChannel.id);
         detail = detailResult.reports[0] if detailResult.reports else None;
-        if detail and not detail["error"] {
+        if detail {
             selectedChannel = detail;
-            channelPosts = detail["posts"] if detail["posts"] else [];
+            channelPosts = detail.posts if detail.posts else [];
         }
     }
 }
@@ -197,7 +212,9 @@ impl app.handleCreateChannel -> None {
     if not newChannelName.strip() {
         return;
     }
-    root spawn create_channel(name=newChannelName.strip(), description=newChannelDescription.strip());
+    root spawn create_channel(
+        name=newChannelName.strip(), description=newChannelDescription.strip()
+    );
     newChannelName = "";
     newChannelDescription = "";
     showCreateChannel = False;
@@ -212,9 +229,9 @@ impl app.handleJoinChannel(channelId: str) -> None {
     if selectedChannel and selectedChannel.id == channelId {
         detailResult = root spawn get_channel_detail(channel_id=channelId);
         detail = detailResult.reports[0] if detailResult.reports else None;
-        if detail and not detail["error"] {
+        if detail {
             selectedChannel = detail;
-            channelPosts = detail["posts"] if detail["posts"] else [];
+            channelPosts = detail.posts if detail.posts else [];
         }
     }
 }
@@ -226,9 +243,9 @@ impl app.handleLeaveChannel(channelId: str) -> None {
     if selectedChannel and selectedChannel.id == channelId {
         detailResult = root spawn get_channel_detail(channel_id=channelId);
         detail = detailResult.reports[0] if detailResult.reports else None;
-        if detail and not detail["error"] {
+        if detail {
             selectedChannel = detail;
-            channelPosts = detail["posts"] if detail["posts"] else [];
+            channelPosts = detail.posts if detail.posts else [];
         }
     }
 }
@@ -236,9 +253,9 @@ impl app.handleLeaveChannel(channelId: str) -> None {
 impl app.handleSelectChannel(channelId: str) -> None {
     detailResult = root spawn get_channel_detail(channel_id=channelId);
     detail = detailResult.reports[0] if detailResult.reports else None;
-    if detail and not detail["error"] {
+    if detail {
         selectedChannel = detail;
-        channelPosts = detail["posts"] if detail["posts"] else [];
+        channelPosts = detail.posts if detail.posts else [];
     }
 }
 
@@ -251,9 +268,9 @@ impl app.handleChannelPost -> None {
     root spawn create_channel_tweet(channel_id=selectedChannel.id, content=text);
     detailResult = root spawn get_channel_detail(channel_id=selectedChannel.id);
     detail = detailResult.reports[0] if detailResult.reports else None;
-    if detail and not detail["error"] {
+    if detail {
         selectedChannel = detail;
-        channelPosts = detail["posts"] if detail["posts"] else [];
+        channelPosts = detail.posts if detail.posts else [];
     }
 }
 

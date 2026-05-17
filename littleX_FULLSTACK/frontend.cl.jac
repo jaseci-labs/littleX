@@ -2,7 +2,7 @@
 
 import from "@jac/runtime" { jacSignup, jacLogin, jacLogout, jacIsLoggedIn }
 sv import from .server { setup_profile, get_profile, get_all_profiles, follow_user, unfollow_user, create_tweet, delete_tweet, like_tweet, add_comment, load_feed, get_trending, create_channel, join_channel, leave_channel, get_channels, get_channel_detail, create_channel_tweet }
-sv import from .server { UserView, TweetView, ChannelView, TrendingTag }
+sv import from .server { UserView, TweetView, ChannelView, TrendingTag, ProfileView }
 import from "lucide-react" { Home, Compass, User, LogOut, Search, Feather, Hash, Users, Plus, ArrowLeft, X }
 import from .components.TweetCard { TweetCard }
 import from .components.AuthForm { AuthForm }
@@ -17,7 +17,7 @@ def:pub app -> JsxElement {
         authError: str = "",
         authLoading: bool = False,
         activeTab: str = "feed",
-        myProfile: any = None,
+        myProfile: ProfileView | None = None,
         tweets: list[TweetView] = [],
         feedLoading: bool = True,
         composerText: str = "",
@@ -30,7 +30,7 @@ def:pub app -> JsxElement {
         showWelcome: bool = False,
         channels: list[ChannelView] = [],
         channelsLoading: bool = False,
-        selectedChannel: any = None,
+        selectedChannel: ChannelView | None = None,
         channelPosts: list[TweetView] = [],
         channelComposerText: str = "",
         showCreateChannel: bool = False,
@@ -92,7 +92,7 @@ def:pub app -> JsxElement {
     profileUsername = myProfile.username if myProfile else "";
     displayUsername = profileUsername.split("@")[0] if "@" in profileUsername else profileUsername;
     profileAvatar = "https://i.pravatar.cc/150?u=fake@" + profileUsername;
-    followingIds = [f["id"] for f in myProfile.following] if myProfile and myProfile.following else [];
+    followingIds = [f.id for f in myProfile.following] if myProfile and myProfile.following else [];
     followingCount = len(myProfile.following) if myProfile and myProfile.following else 0;
     followerCount = len(myProfile.followers) if myProfile and myProfile.followers else 0;
     postCount = len(myProfile.tweets) if myProfile and myProfile.tweets else 0;
@@ -101,7 +101,7 @@ def:pub app -> JsxElement {
     ring_offset = str(62.83 * (1.0 - ring_progress));
     ring_color = "#ef4444" if charsLeft < 0 else ("#f97316" if charsLeft < 50 else ("#fb923c" if charsLeft < 100 else "#2a2a35"));
     toFollow = [u for u in allProfiles if u.id not in followingIds and u.id != (myProfile.id if myProfile else "")];
-    current_total_activity = sum([len(t["likes"]) + len(t["comments"]) for t in (myProfile.tweets if myProfile and myProfile.tweets else [])]);
+    current_total_activity = sum([len(t.likes) + len(t.comments) for t in (myProfile.tweets if myProfile and myProfile.tweets else [])]);
 
     return <div className="lx-root">
         <aside className="lx-sidebar-left">
@@ -408,14 +408,14 @@ def:pub app -> JsxElement {
                                     {(
                                         <button
                                             className="lx-edit-profile-btn"
-                                            onClick={lambda { handleLeaveChannel(selectedChannel.id); }}
+                                            onClick={lambda { if selectedChannel { handleLeaveChannel(selectedChannel.id); } }}
                                         >
                                             Leave
                                         </button>
                                     ) if selectedChannel.is_member else (
                                         <button
                                             className="lx-follow-btn"
-                                            onClick={lambda { handleJoinChannel(selectedChannel.id); }}
+                                            onClick={lambda { if selectedChannel { handleJoinChannel(selectedChannel.id); } }}
                                         >
                                             Join
                                         </button>
@@ -525,7 +525,7 @@ def:pub app -> JsxElement {
 
                     {[
                         <TweetCard
-                            key={tweet["id"]}
+                            key={tweet.id}
                             tweet={tweet}
                             myUsername={profileUsername}
                             onLike={handleLike}
