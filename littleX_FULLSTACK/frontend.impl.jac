@@ -201,6 +201,36 @@ impl app.handleDismissWelcome -> None {
     showWelcome = False;
 }
 
+impl app.handleTrendClick(tag: str) -> None {
+    searchQuery = tag;
+    handleSearch(tag);
+    activeTab = "feed";
+}
+
+# Single entry point for tab switching -- consolidates the per-tab side
+# effects (search reset, channel load, profile activity bookkeeping) that
+# used to be duplicated across the desktop and mobile nav bars.
+impl app.navigate(tab: str) -> None {
+    activeTab = tab;
+    if tab == "feed" and searchQuery {
+        searchQuery = "";
+        handleSearch("");
+    }
+    if tab == "channels" {
+        loadChannels();
+    }
+    if tab == "profile" {
+        total_activity = sum(
+            [
+                len(t.likes) + len(t.comments)
+                for t in (myProfile.tweets if myProfile and myProfile.tweets else [])
+            ]
+        );
+        localStorage.setItem("lx_activity_total", str(total_activity));
+        notifCount = 0;
+    }
+}
+
 impl app.loadChannels -> None {
     channelsLoading = True;
     result = root spawn get_channels();
@@ -208,16 +238,11 @@ impl app.loadChannels -> None {
     channelsLoading = False;
 }
 
-impl app.handleCreateChannel -> None {
-    if not newChannelName.strip() {
+impl app.handleCreateChannel(name: str, description: str) -> None {
+    if not name.strip() {
         return;
     }
-    root spawn create_channel(
-        name=newChannelName.strip(), description=newChannelDescription.strip()
-    );
-    newChannelName = "";
-    newChannelDescription = "";
-    showCreateChannel = False;
+    root spawn create_channel(name=name.strip(), description=description.strip());
     result = root spawn get_channels();
     channels = result.reports[0] if result.reports else [];
 }
@@ -259,12 +284,10 @@ impl app.handleSelectChannel(channelId: str) -> None {
     }
 }
 
-impl app.handleChannelPost -> None {
-    if not channelComposerText.strip() or not selectedChannel {
+impl app.handleChannelPost(text: str) -> None {
+    if not text.strip() or not selectedChannel {
         return;
     }
-    text = channelComposerText;
-    channelComposerText = "";
     root spawn create_channel_tweet(channel_id=selectedChannel.id, content=text);
     detailResult = root spawn get_channel_detail(channel_id=selectedChannel.id);
     detail = detailResult.reports[0] if detailResult.reports else None;
@@ -277,5 +300,4 @@ impl app.handleChannelPost -> None {
 impl app.handleBackToChannels -> None {
     selectedChannel = None;
     channelPosts = [];
-    channelComposerText = "";
 }

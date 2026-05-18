@@ -1,11 +1,22 @@
-"""Little X - Frontend declarations."""
+"""Little X - Frontend declarations.
+
+The `app` component owns shared state and server handlers, then delegates
+rendering to focused components in `components/`. See `frontend.impl.jac`
+for handler implementations.
+"""
 
 import from "@jac/runtime" { jacSignup, jacLogin, jacLogout, jacIsLoggedIn }
 sv import from .server { setup_profile, get_profile, get_all_profiles, follow_user, unfollow_user, create_tweet, delete_tweet, like_tweet, add_comment, load_feed, get_trending, create_channel, join_channel, leave_channel, get_channels, get_channel_detail, create_channel_tweet }
 sv import from .server { UserView, TweetView, ChannelView, TrendingTag, ProfileView }
-import from "lucide-react" { Home, Compass, User, LogOut, Search, Feather, Hash, Users, Plus, ArrowLeft, X }
-import from .components.TweetCard { TweetCard }
+import from "lucide-react" { Feather }
 import from .components.AuthForm { AuthForm }
+import from .components.Sidebar { Sidebar }
+import from .components.RightSidebar { RightSidebar }
+import from .components.MobileNav { MobileNav }
+import from .components.FeedTab { FeedTab }
+import from .components.ExploreTab { ExploreTab }
+import from .components.ChannelsTab { ChannelsTab }
+import from .components.ProfileTab { ProfileTab }
 import "./global.css";
 
 def:pub app -> JsxElement {
@@ -31,11 +42,7 @@ def:pub app -> JsxElement {
         channels: list[ChannelView] = [],
         channelsLoading: bool = False,
         selectedChannel: ChannelView | None = None,
-        channelPosts: list[TweetView] = [],
-        channelComposerText: str = "",
-        showCreateChannel: bool = False,
-        newChannelName: str = "",
-        newChannelDescription: str = "";
+        channelPosts: list[TweetView] = [];
 
     can with entry {
         isLoggedIn = jacIsLoggedIn();
@@ -63,12 +70,14 @@ def:pub app -> JsxElement {
     async def handleSearch(query: str) -> None;
     def handleRepost(tweetId: str, content: str, author: str) -> None;
     def handleDismissWelcome() -> None;
+    def handleTrendClick(tag: str) -> None;
+    def navigate(tab: str) -> None;
     async def loadChannels() -> None;
-    async def handleCreateChannel() -> None;
+    async def handleCreateChannel(name: str, description: str) -> None;
     async def handleJoinChannel(channelId: str) -> None;
     async def handleLeaveChannel(channelId: str) -> None;
     async def handleSelectChannel(channelId: str) -> None;
-    async def handleChannelPost() -> None;
+    async def handleChannelPost(text: str) -> None;
     def handleBackToChannels() -> None;
 
     if checkingAuth {
@@ -92,76 +101,20 @@ def:pub app -> JsxElement {
     profileUsername = myProfile.username if myProfile else "";
     displayUsername = profileUsername.split("@")[0] if "@" in profileUsername else profileUsername;
     profileAvatar = "https://i.pravatar.cc/150?u=fake@" + profileUsername;
+    myProfileId = myProfile.id if myProfile else "";
     followingIds = [f.id for f in myProfile.following] if myProfile and myProfile.following else [];
-    followingCount = len(myProfile.following) if myProfile and myProfile.following else 0;
-    followerCount = len(myProfile.followers) if myProfile and myProfile.followers else 0;
-    postCount = len(myProfile.tweets) if myProfile and myProfile.tweets else 0;
-    charsLeft = 280 - len(composerText);
-    ring_progress = min(1.0, (280 - charsLeft) / 280.0);
-    ring_offset = str(62.83 * (1.0 - ring_progress));
-    ring_color = "#ef4444" if charsLeft < 0 else ("#f97316" if charsLeft < 50 else ("#fb923c" if charsLeft < 100 else "#2a2a35"));
-    toFollow = [u for u in allProfiles if u.id not in followingIds and u.id != (myProfile.id if myProfile else "")];
-    current_total_activity = sum([len(t.likes) + len(t.comments) for t in (myProfile.tweets if myProfile and myProfile.tweets else [])]);
+    toFollow = [u for u in allProfiles if u.id not in followingIds and u.id != myProfileId];
 
     return <div className="lx-root">
-        <aside className="lx-sidebar-left">
-            <div className="lx-brand">
-                <img src="/static/assets/littlex-logo.png" className="lx-brand-logo" alt="little-x" />
-                <span className="lx-brand-name">LITTLE-X</span>
-            </div>
-
-            <nav className="lx-nav">
-                <div
-                    className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "feed" else "")}
-                    onClick={lambda { activeTab = "feed"; if searchQuery { searchQuery = ""; handleSearch(""); } }}
-                >
-                    <Home size={22} />
-                    <span>Home</span>
-                </div>
-                <div
-                    className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "explore" else "")}
-                    onClick={lambda { activeTab = "explore"; }}
-                >
-                    <Compass size={22} />
-                    <span>Explore</span>
-                </div>
-                <div
-                    className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "channels" else "")}
-                    onClick={lambda { activeTab = "channels"; loadChannels(); }}
-                >
-                    <Hash size={22} />
-                    <span>Channels</span>
-                </div>
-                <div
-                    className={"lx-nav-item" + (" lx-nav-item-active" if activeTab == "profile" else "")}
-                    onClick={lambda { activeTab = "profile"; localStorage.setItem("lx_activity_total", str(current_total_activity)); notifCount = 0; }}
-                >
-                    <User size={22} />
-                    <span>Profile</span>
-                    {(
-                        <span className="lx-nav-badge">{str(notifCount)}</span>
-                    ) if notifCount > 0 else None}
-                </div>
-            </nav>
-
-            <button className="lx-compose-btn" onClick={lambda { activeTab = "feed"; }}>
-                <Feather size={18} />
-                <span>Post</span>
-            </button>
-
-            <div style={{"flex": "1"}} />
-
-            <div className="lx-sidebar-user">
-                <img className="lx-avatar" src={profileAvatar} alt={profileUsername} />
-                <div className="lx-sidebar-user-info">
-                    <div className="lx-sidebar-user-name">{displayUsername}</div>
-                    <div className="lx-sidebar-user-handle">{"@" + displayUsername}</div>
-                </div>
-                <button className="lx-logout-icon-btn" onClick={lambda { handleLogout(); }}>
-                    <LogOut size={18} />
-                </button>
-            </div>
-        </aside>
+        <Sidebar
+            activeTab={activeTab}
+            displayUsername={displayUsername}
+            profileUsername={profileUsername}
+            profileAvatar={profileAvatar}
+            notifCount={notifCount}
+            onNavigate={navigate}
+            onLogout={handleLogout}
+        />
 
         <main className="lx-main">
             <div className="lx-feed-header">
@@ -179,482 +132,92 @@ def:pub app -> JsxElement {
             </div>
 
             {(
-                <div>
-                    {(
-                        <div className="lx-welcome-banner">
-                            <div className="lx-welcome-content">
-                                <div className="lx-welcome-title">Welcome to LITTLE-X</div>
-                                <div className="lx-welcome-tips">
-                                    <span className="lx-welcome-tip">{"Post a thought to get started"}</span>
-                                    <span className="lx-welcome-tip">{"Use #hashtags to join trending topics"}</span>
-                                    <span className="lx-welcome-tip">{"Explore and follow people in Explore"}</span>
-                                </div>
-                            </div>
-                            <button className="lx-welcome-dismiss" onClick={lambda { handleDismissWelcome(); }}>
-                                {"Got it"}
-                            </button>
-                        </div>
-                    ) if showWelcome else None}
-                    <div className="lx-composer">
-                        <img className="lx-avatar" src={profileAvatar} alt={profileUsername} />
-                        <div className="lx-composer-body">
-                            <textarea
-                                className="lx-composer-textarea"
-                                placeholder="What's happening?"
-                                value={composerText}
-                                onChange={lambda e: ChangeEvent { composerText = e.target.value; }}
-                                rows={3}
-                            />
-                            <div className="lx-composer-footer">
-                                <div className="lx-char-ring-wrap">
-                                    <svg className="lx-char-ring" viewBox="0 0 24 24">
-                                        <circle className="lx-char-ring-bg" cx={12} cy={12} r={10} />
-                                        <circle
-                                            className="lx-char-ring-fill"
-                                            cx={12}
-                                            cy={12}
-                                            r={10}
-                                            strokeDasharray={"62.83"}
-                                            strokeDashoffset={ring_offset}
-                                            stroke={ring_color}
-                                        />
-                                    </svg>
-                                    {(
-                                        <span className={"lx-char-count-over" if charsLeft < 0 else "lx-char-count-warn"}>
-                                            {str(charsLeft)}
-                                        </span>
-                                    ) if charsLeft <= 20 else None}
-                                </div>
-                                <button
-                                    className="lx-post-btn"
-                                    disabled={not composerText.strip() or charsLeft < 0}
-                                    onClick={lambda { postTweet(); }}
-                                >
-                                    Post
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {(
-                        <div className="lx-loading">Loading feed...</div>
-                    ) if feedLoading else None}
-
-                    {(
-                        <div>
-                            {(
-                                <div className="lx-empty">
-                                    <div className="lx-empty-title">Nothing here yet</div>
-                                    <span>Follow people or post something!</span>
-                                </div>
-                            ) if len(tweets) == 0 else None}
-                            {[
-                                <TweetCard
-                                    key={tweet.id}
-                                    tweet={tweet}
-                                    myUsername={profileUsername}
-                                    onLike={handleLike}
-                                    onComment={handleComment}
-                                    onDelete={handleDelete}
-                                    onRepost={handleRepost}
-                                /> for tweet in tweets
-                            ]}
-                        </div>
-                    ) if not feedLoading else None}
-                </div>
+                <FeedTab
+                    showWelcome={showWelcome}
+                    onDismissWelcome={handleDismissWelcome}
+                    profileAvatar={profileAvatar}
+                    profileUsername={profileUsername}
+                    composerText={composerText}
+                    onComposerChange={lambda v: str { composerText = v; }}
+                    onPost={postTweet}
+                    feedLoading={feedLoading}
+                    tweets={tweets}
+                    onLike={handleLike}
+                    onComment={handleComment}
+                    onDelete={handleDelete}
+                    onRepost={handleRepost}
+                />
             ) if activeTab == "feed" else None}
 
             {(
-                <div>
-                    {(
-                        <div className="lx-loading">Loading users...</div>
-                    ) if not allProfiles else None}
-                    {[
-                        <div className="lx-explore-item" key={u.id}>
-                            <img className="lx-avatar" src={"https://i.pravatar.cc/150?u=fake@" + u.username} alt={u.username} />
-                            <div className="lx-explore-info">
-                                <div className="lx-explore-name">{u.username.split("@")[0] if "@" in u.username else u.username}</div>
-                                <div className="lx-explore-handle">{"@" + (u.username.split("@")[0] if "@" in u.username else u.username)}</div>
-                                <div className="lx-explore-bio">{u.bio if u.bio else "No bio yet"}</div>
-                            </div>
-                            {(
-                                <button
-                                    className="lx-unfollow-btn"
-                                    onClick={lambda { handleUnfollow(u.id); }}
-                                >
-                                    Following
-                                </button>
-                            ) if u.id in followingIds else (
-                                <button
-                                    className="lx-follow-btn"
-                                    onClick={lambda { handleFollow(u.id); }}
-                                >
-                                    Follow
-                                </button>
-                            ) if u.id != (myProfile.id if myProfile else "") else None}
-                        </div>
-                        for u in allProfiles
-                    ]}
-                </div>
+                <ExploreTab
+                    allProfiles={allProfiles}
+                    followingIds={followingIds}
+                    myProfileId={myProfileId}
+                    onFollow={handleFollow}
+                    onUnfollow={handleUnfollow}
+                />
             ) if activeTab == "explore" else None}
 
             {(
-                <div>
-                    {(
-                        <div>
-                            <div className="lx-channel-actions">
-                                <button
-                                    className="lx-post-btn"
-                                    onClick={lambda { showCreateChannel = not showCreateChannel; }}
-                                >
-                                    <Plus size={16} />
-                                    {"Create Channel"}
-                                </button>
-                            </div>
-
-                            {(
-                                <div className="lx-channel-create-form">
-                                    <input
-                                        className="lx-input"
-                                        placeholder="Channel name"
-                                        value={newChannelName}
-                                        onChange={lambda e: ChangeEvent { newChannelName = e.target.value; }}
-                                    />
-                                    <input
-                                        className="lx-input"
-                                        placeholder="Description (optional)"
-                                        value={newChannelDescription}
-                                        onChange={lambda e: ChangeEvent { newChannelDescription = e.target.value; }}
-                                    />
-                                    <div style={{"display": "flex", "gap": "0.5rem"}}>
-                                        <button
-                                            className="lx-post-btn"
-                                            disabled={not newChannelName.strip()}
-                                            onClick={lambda { handleCreateChannel(); }}
-                                        >
-                                            Create
-                                        </button>
-                                        <button
-                                            className="lx-edit-profile-btn"
-                                            onClick={lambda { showCreateChannel = False; newChannelName = ""; newChannelDescription = ""; }}
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            ) if showCreateChannel else None}
-
-                            {(
-                                <div className="lx-loading">Loading channels...</div>
-                            ) if channelsLoading else None}
-
-                            {(
-                                <div>
-                                    {(
-                                        <div className="lx-empty">
-                                            <div className="lx-empty-title">No channels yet</div>
-                                            <span>Create one to get started!</span>
-                                        </div>
-                                    ) if len(channels) == 0 else None}
-                                    {[
-                                        <div
-                                            className="lx-channel-item"
-                                            key={ch.id}
-                                            onClick={lambda { handleSelectChannel(ch.id); }}
-                                        >
-                                            <div className="lx-channel-icon">
-                                                <Hash size={20} />
-                                            </div>
-                                            <div className="lx-channel-item-info">
-                                                <div className="lx-channel-item-name">{ch.name}</div>
-                                                {(
-                                                    <div className="lx-channel-item-desc">{ch.description}</div>
-                                                ) if ch.description else None}
-                                                <div className="lx-channel-item-meta">
-                                                    <Users size={12} />
-                                                    <span>{str(ch.member_count) + (" member" if ch.member_count == 1 else " members")}</span>
-                                                </div>
-                                            </div>
-                                            {(
-                                                <span className="lx-channel-joined-badge">Joined</span>
-                                            ) if ch.is_member else None}
-                                        </div>
-                                        for ch in channels
-                                    ]}
-                                </div>
-                            ) if not channelsLoading else None}
-                        </div>
-                    ) if not selectedChannel else (
-                        <div>
-                            <div className="lx-channel-header">
-                                <button
-                                    className="lx-edit-profile-btn"
-                                    onClick={lambda { handleBackToChannels(); }}
-                                    style={{"display": "flex", "alignItems": "center", "gap": "0.3rem"}}
-                                >
-                                    <ArrowLeft size={16} />
-                                    Back
-                                </button>
-                                <div className="lx-channel-name">
-                                    <Hash size={20} />
-                                    {selectedChannel.name}
-                                </div>
-                                {(
-                                    <div className="lx-channel-desc">{selectedChannel.description}</div>
-                                ) if selectedChannel.description else None}
-                                <div className="lx-channel-meta">
-                                    <Users size={14} />
-                                    <span>{str(selectedChannel.member_count) + (" member" if selectedChannel.member_count == 1 else " members")}</span>
-                                    {(
-                                        <button
-                                            className="lx-edit-profile-btn"
-                                            onClick={lambda { if selectedChannel { handleLeaveChannel(selectedChannel.id); } }}
-                                        >
-                                            Leave
-                                        </button>
-                                    ) if selectedChannel.is_member else (
-                                        <button
-                                            className="lx-follow-btn"
-                                            onClick={lambda { if selectedChannel { handleJoinChannel(selectedChannel.id); } }}
-                                        >
-                                            Join
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {(
-                                <div className="lx-composer">
-                                    <img className="lx-avatar" src={profileAvatar} alt={profileUsername} />
-                                    <div className="lx-composer-body">
-                                        <textarea
-                                            className="lx-composer-textarea"
-                                            placeholder={"Post in #" + selectedChannel.name}
-                                            value={channelComposerText}
-                                            onChange={lambda e: ChangeEvent { channelComposerText = e.target.value; }}
-                                            rows={2}
-                                        />
-                                        <div className="lx-composer-footer">
-                                            <div />
-                                            <button
-                                                className="lx-post-btn"
-                                                disabled={not channelComposerText.strip()}
-                                                onClick={lambda { handleChannelPost(); }}
-                                            >
-                                                Post
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ) if selectedChannel.is_member else None}
-
-                            {(
-                                <div className="lx-empty">
-                                    <div className="lx-empty-title">No posts yet</div>
-                                    <span>{("Be the first to post!" if selectedChannel.is_member else "Join this channel to post!")}</span>
-                                </div>
-                            ) if len(channelPosts) == 0 else None}
-
-                            {[
-                                <TweetCard
-                                    key={tweet.id}
-                                    tweet={tweet}
-                                    myUsername={profileUsername}
-                                    onLike={handleLike}
-                                    onComment={handleComment}
-                                    onDelete={handleDelete}
-                                    onRepost={handleRepost}
-                                /> for tweet in channelPosts
-                            ]}
-                        </div>
-                    )}
-                </div>
+                <ChannelsTab
+                    channels={channels}
+                    channelsLoading={channelsLoading}
+                    selectedChannel={selectedChannel}
+                    channelPosts={channelPosts}
+                    profileAvatar={profileAvatar}
+                    profileUsername={profileUsername}
+                    onCreateChannel={handleCreateChannel}
+                    onJoinChannel={handleJoinChannel}
+                    onLeaveChannel={handleLeaveChannel}
+                    onSelectChannel={handleSelectChannel}
+                    onChannelPost={handleChannelPost}
+                    onBackToChannels={handleBackToChannels}
+                    onLike={handleLike}
+                    onComment={handleComment}
+                    onDelete={handleDelete}
+                    onRepost={handleRepost}
+                />
             ) if activeTab == "channels" else None}
 
             {(
-                <div>
-                    <div className="lx-profile-banner" />
-                    <div className="lx-profile-info">
-                        <div className="lx-profile-avatar-wrap">
-                            <img className="lx-avatar-lg" src={profileAvatar} alt={profileUsername} />
-                        </div>
-                        <div className="lx-profile-display-name">{displayUsername}</div>
-                        <div className="lx-profile-handle">{"@" + displayUsername}</div>
-                        {(
-                            <div className="lx-profile-bio-text">
-                                {myProfile.bio if myProfile and myProfile.bio else "No bio yet"}
-                            </div>
-                        ) if not editingBio else None}
-                        {(
-                            <div className="lx-bio-edit-wrap">
-                                <textarea
-                                    className="lx-bio-input"
-                                    rows={3}
-                                    placeholder="Write your bio..."
-                                    value={bioText}
-                                    onChange={lambda e: ChangeEvent { bioText = e.target.value; }}
-                                />
-                                <div style={{"display": "flex", "gap": "0.5rem"}}>
-                                    <button className="lx-bio-save-btn" onClick={lambda { handleSaveBio(); }}>
-                                        Save
-                                    </button>
-                                    <button
-                                        className="lx-edit-profile-btn"
-                                        onClick={lambda { editingBio = False; }}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        ) if editingBio else None}
-                        <div className="lx-profile-stats">
-                            <div className="lx-profile-stat">
-                                <strong>{str(followingCount)}</strong>
-                                Following
-                            </div>
-                            <div className="lx-profile-stat">
-                                <strong>{str(followerCount)}</strong>
-                                {("Follower" if followerCount == 1 else "Followers")}
-                            </div>
-                            <div className="lx-profile-stat">
-                                <strong>{str(postCount)}</strong>
-                                {("Post" if postCount == 1 else "Posts")}
-                            </div>
-                        </div>
-                    </div>
-
-                    {[
-                        <TweetCard
-                            key={tweet.id}
-                            tweet={tweet}
-                            myUsername={profileUsername}
-                            onLike={handleLike}
-                            onComment={handleComment}
-                            onDelete={handleDelete}
-                            onRepost={handleRepost}
-                        /> for tweet in (myProfile.tweets if myProfile and myProfile.tweets else [])
-                    ]}
-                </div>
+                <ProfileTab
+                    myProfile={myProfile}
+                    displayUsername={displayUsername}
+                    profileAvatar={profileAvatar}
+                    profileUsername={profileUsername}
+                    editingBio={editingBio}
+                    bioText={bioText}
+                    onBioChange={lambda v: str { bioText = v; }}
+                    onSaveBio={handleSaveBio}
+                    onCancelEditBio={lambda { editingBio = False; }}
+                    onLike={handleLike}
+                    onComment={handleComment}
+                    onDelete={handleDelete}
+                    onRepost={handleRepost}
+                />
             ) if activeTab == "profile" else None}
         </main>
 
-        <aside className="lx-sidebar-right">
-            <div className="lx-sidebar-right-inner">
-                <div className="lx-search-wrap">
-                    <span className="lx-search-icon">
-                        <Search size={16} />
-                    </span>
-                    <input
-                        className="lx-search-input"
-                        placeholder="Search Little-X"
-                        value={searchQuery}
-                        onChange={lambda e: ChangeEvent { searchQuery = e.target.value; }}
-                        onKeyDown={lambda e: KeyboardEvent { if e.key == "Enter" { handleSearch(e.target.value); } }}
-                    />
-                    {(
-                        <button
-                            className="lx-search-clear"
-                            title="Clear search"
-                            onClick={lambda { searchQuery = ""; handleSearch(""); }}
-                        >
-                            <X size={16} />
-                        </button>
-                    ) if searchQuery else None}
-                    <button
-                        className="lx-search-btn"
-                        onClick={lambda { handleSearch(searchQuery); }}
-                    >
-                        Search
-                    </button>
-                </div>
+        <RightSidebar
+            searchQuery={searchQuery}
+            onSearchChange={lambda v: str { searchQuery = v; }}
+            onSearch={handleSearch}
+            onClearSearch={lambda { searchQuery = ""; handleSearch(""); }}
+            trendingTags={trendingTags}
+            onTrendClick={handleTrendClick}
+            toFollow={toFollow}
+            onFollow={handleFollow}
+            onShowMore={lambda { navigate("explore"); }}
+        />
 
-                {(
-                    <div className="lx-widget">
-                        <div className="lx-widget-title">Trending</div>
-                        {[
-                            <div
-                                className="lx-trend-item"
-                                key={t.tag}
-                                onClick={lambda { searchQuery = t.tag; handleSearch(t.tag); activeTab = "feed"; }}
-                            >
-                                <span className="lx-trend-tag">{t.tag}</span>
-                                <span className="lx-trend-count">{str(t.count) + (" post" if t.count == 1 else " posts")}</span>
-                            </div>
-                            for t in trendingTags
-                        ]}
-                    </div>
-                ) if len(trendingTags) > 0 else None}
+        <MobileNav
+            activeTab={activeTab}
+            notifCount={notifCount}
+            onNavigate={navigate}
+        />
 
-                {(
-                    <div className="lx-widget">
-                        <div className="lx-widget-title">Who to follow</div>
-                        {[
-                            <div className="lx-follow-item" key={u.id}>
-                                <img className="lx-avatar-sm" src={"https://i.pravatar.cc/150?u=fake@" + u.username} alt={u.username} />
-                                <div className="lx-follow-item-info">
-                                    <div className="lx-follow-item-name">{u.username.split("@")[0] if "@" in u.username else u.username}</div>
-                                    <div className="lx-follow-item-handle">{"@" + (u.username.split("@")[0] if "@" in u.username else u.username)}</div>
-                                </div>
-                                <button
-                                    className="lx-follow-btn"
-                                    onClick={lambda { handleFollow(u.id); }}
-                                >
-                                    Follow
-                                </button>
-                            </div>
-                            for u in toFollow[:5]
-                        ]}
-                        {(
-                            <div className="lx-widget-show-more" onClick={lambda { activeTab = "explore"; }}>
-                                Show more
-                            </div>
-                        ) if len(toFollow) > 5 else None}
-                    </div>
-                ) if len(toFollow) > 0 else None}
-
-                <div className="lx-about-widget">
-                    <div className="lx-about-title">LITTLE-X</div>
-                    <div className="lx-about-desc">A decentralized social platform built with Jac. Share thoughts, follow people, join conversations.</div>
-                    <div className="lx-about-links">
-                        <span className="lx-about-tag">{"#jacdev"}</span>
-                        <span className="lx-about-tag">{"#jaseci"}</span>
-                        <span className="lx-about-tag">{"#open-source"}</span>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <nav className="lx-mobile-nav">
-            <div
-                className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "feed" else "")}
-                onClick={lambda { activeTab = "feed"; if searchQuery { searchQuery = ""; handleSearch(""); } }}
-            >
-                <Home size={24} />
-            </div>
-            <div
-                className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "explore" else "")}
-                onClick={lambda { activeTab = "explore"; }}
-            >
-                <Compass size={24} />
-            </div>
-            <div
-                className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "channels" else "")}
-                onClick={lambda { activeTab = "channels"; loadChannels(); }}
-            >
-                <Hash size={24} />
-            </div>
-            <div
-                className={"lx-mobile-nav-item" + (" lx-mobile-nav-item-active" if activeTab == "profile" else "")}
-                onClick={lambda { activeTab = "profile"; localStorage.setItem("lx_activity_total", str(current_total_activity)); notifCount = 0; }}
-            >
-                <User size={24} />
-                {(
-                    <span className="lx-nav-badge">{str(notifCount)}</span>
-                ) if notifCount > 0 else None}
-            </div>
-        </nav>
-
-        <button className="lx-mobile-fab" onClick={lambda { activeTab = "feed"; }}>
+        <button className="lx-mobile-fab" onClick={lambda { navigate("feed"); }}>
             <Feather size={22} />
         </button>
     </div>;
