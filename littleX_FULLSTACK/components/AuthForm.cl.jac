@@ -1,16 +1,16 @@
 """Authentication form component for Little X."""
 
-def:pub AuthForm(props: any) -> JsxElement {
-    isSignup = props.isSignup;
-    username = props.username;
-    password = props.password;
-    error = props.error;
-    loading = props.loading;
-    onUsernameChange = props.onUsernameChange;
-    onPasswordChange = props.onPasswordChange;
-    onSubmit = props.onSubmit;
-    onToggleMode = props.onToggleMode;
-
+def:pub AuthForm(
+    isSignup: bool,
+    username: str,
+    password: str,
+    error: str,
+    loading: bool,
+    onUsernameChange: any,
+    onPasswordChange: any,
+    onSubmit: any,
+    onToggleMode: any,
+) -> JsxElement {
     return <div className="lx-auth-root">
         <div className="lx-auth-left">
             <img src="/static/assets/littlex-logo.png" className="lx-auth-logo-big" alt="little-x" />

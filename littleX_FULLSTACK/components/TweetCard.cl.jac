@@ -1,15 +1,16 @@
 """Tweet card component for Little X."""
 
 import from "lucide-react" { Heart, MessageCircle, Trash2, Repeat2 }
+sv import from ..server { TweetView }
 
-def:pub TweetCard(props: any) -> JsxElement {
-    tweet = props.tweet;
-    myUsername = props.myUsername;
-    onLike = props.onLike;
-    onComment = props.onComment;
-    onDelete = props.onDelete;
-    onRepost = props.onRepost;
-
+def:pub TweetCard(
+    tweet: TweetView,
+    myUsername: str,
+    onLike: any,
+    onComment: any,
+    onDelete: any,
+    onRepost: any,
+) -> JsxElement {
     has showComments: bool = False,
         commentText: str = "";
 
@@ -18,15 +19,15 @@ def:pub TweetCard(props: any) -> JsxElement {
     deleteFn = onDelete;
     repostFn = onRepost;
 
-    is_liked = myUsername in tweet["likes"];
-    like_count = str(len(tweet["likes"]));
-    comment_count = str(len(tweet["comments"]));
-    author_avatar = "https://i.pravatar.cc/150?u=fake@" + tweet["author_username"];
+    is_liked = myUsername in tweet.likes;
+    like_count = str(len(tweet.likes));
+    comment_count = str(len(tweet.comments));
+    author_avatar = "https://i.pravatar.cc/150?u=fake@" + tweet.author_username;
 
-    raw_name = tweet["author_username"] if tweet["author_username"] else "unknown";
+    raw_name = tweet.author_username if tweet.author_username else "unknown";
     display_name = raw_name.split("@")[0] if "@" in raw_name else raw_name;
 
-    diff_ms = Date.now() - Reflect.construct(Date, [tweet["created_at"]]).getTime() if tweet["created_at"] else 0;
+    diff_ms = Date.now() - new(Date, tweet.created_at).getTime() if tweet.created_at else 0;
     diff_min = int(diff_ms / 60000);
     diff_hr = int(diff_min / 60);
     diff_day = int(diff_hr / 24);
@@ -34,14 +35,14 @@ def:pub TweetCard(props: any) -> JsxElement {
         "now" if diff_min < 1 else (
             str(diff_min) + "m" if diff_hr < 1 else (
                 str(diff_hr) + "h" if diff_day < 1 else (
-                    str(diff_day) + "d" if diff_day < 30 else tweet["created_at"][0:10]
+                    str(diff_day) + "d" if diff_day < 30 else tweet.created_at[0:10]
                 )
             )
         )
-    ) if tweet["created_at"] else "";
+    ) if tweet.created_at else "";
 
     return <div className="lx-tweet">
-        <img className="lx-avatar" src={author_avatar} alt={tweet["author_username"]} />
+        <img className="lx-avatar" src={author_avatar} alt={tweet.author_username} />
         <div className="lx-tweet-body">
             <div className="lx-tweet-header">
                 <span className="lx-tweet-name">{display_name}</span>
@@ -49,7 +50,7 @@ def:pub TweetCard(props: any) -> JsxElement {
                 <span className="lx-tweet-dot">·</span>
                 <span className="lx-tweet-time">{date_str}</span>
             </div>
-            <div className="lx-tweet-text">{tweet["content"]}</div>
+            <div className="lx-tweet-text">{tweet.content}</div>
             <div className="lx-tweet-actions">
                 <button
                     className="lx-act-btn lx-act-comment"
@@ -60,14 +61,14 @@ def:pub TweetCard(props: any) -> JsxElement {
                 </button>
                 <button
                     className="lx-act-btn lx-act-repost"
-                    onClick={lambda { repostFn.call(None, tweet["id"], tweet["content"], tweet["author_username"]); }}
+                    onClick={lambda { repostFn.call(None, tweet.id, tweet.content, tweet.author_username); }}
                     title="Repost"
                 >
                     <Repeat2 size={16} />
                 </button>
                 <button
                     className={"lx-act-btn lx-act-liked" if is_liked else "lx-act-btn lx-act-like"}
-                    onClick={lambda { likeFn.call(None, tweet["id"]); }}
+                    onClick={lambda { likeFn.call(None, tweet.id); }}
                 >
                     <Heart size={16} />
                     <span>{like_count}</span>
@@ -75,11 +76,11 @@ def:pub TweetCard(props: any) -> JsxElement {
                 {(
                     <button
                         className="lx-act-btn lx-act-delete"
-                        onClick={lambda { if confirm("Delete this post? This cannot be undone.") { deleteFn.call(None, tweet["id"]); } }}
+                        onClick={lambda { if confirm("Delete this post? This cannot be undone.") { deleteFn.call(None, tweet.id); } }}
                     >
                         <Trash2 size={16} />
                     </button>
-                ) if tweet["is_mine"] else None}
+                ) if tweet.is_mine else None}
             </div>
             {(
                 <div className="lx-comments-section">
@@ -93,7 +94,7 @@ def:pub TweetCard(props: any) -> JsxElement {
                                 <div className="lx-comment-text">{c["content"]}</div>
                             </div>
                         </div>
-                        for c in tweet["comments"]
+                        for c in tweet.comments
                     ]}
                     <div className="lx-comment-form">
                         <input
@@ -103,7 +104,7 @@ def:pub TweetCard(props: any) -> JsxElement {
                             onChange={lambda e: ChangeEvent { commentText = e.target.value; }}
                             onKeyDown={lambda e: KeyboardEvent {
                                 if e.key == "Enter" and commentText.strip() {
-                                    commentFn.call(None, tweet["id"], commentText);
+                                    commentFn.call(None, tweet.id, commentText);
                                     commentText = "";
                                 }
                             }}
@@ -112,7 +113,7 @@ def:pub TweetCard(props: any) -> JsxElement {
                             className="lx-comment-submit"
                             onClick={lambda {
                                 if commentText.strip() {
-                                    commentFn.call(None, tweet["id"], commentText);
+                                    commentFn.call(None, tweet.id, commentText);
                                     commentText = "";
                                 }
                             }}
